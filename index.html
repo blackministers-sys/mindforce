@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindForge</title>
+
+<style>
+body { font-family: Arial; background:#0f0f0f; color:white; padding:20px; }
+.card { background:#1c1c1c; padding:20px; border-radius:15px; }
+button { margin-top:10px; padding:10px; border:none; border-radius:10px; width:100%; }
+.btn { background:#333; color:white; }
+.deep { background:#6a00ff; }
+.fav { background:#ff9800; }
+</style>
+</head>
+
+<body>
+
+<h2>🧠 MindForge</h2>
+
+<select id="category">
+<option>Россия</option>
+<option>Личности</option>
+</select>
+
+<div class="card">
+<h3 id="title"></h3>
+<p id="short"></p>
+
+<button class="btn" onclick="showFull()">🧠 ГЛУБЖЕ</button>
+<button class="fav" onclick="addFav()">⭐ В избранное</button>
+<button class="btn" onclick="nextCard()">➡️ ЕЩЁ</button>
+</div>
+
+<div id="fullBlock" style="display:none;">
+<p id="full"></p>
+<button class="deep" onclick="showDeep()">🔥 ЕЩЁ ГЛУБЖЕ</button>
+</div>
+
+<div id="deepBlock" style="display:none;">
+<p id="deep"></p>
+</div>
+
+<script>
+
+const cards = [
+{
+title:"Пётр I",
+category:"Россия",
+short:"Радикально модернизировал Россию",
+full:"Пётр I создал армию, флот и реформировал управление...",
+deep:"Экспертно: ускоренное развитие усилило государство, но создало жёсткую систему..."
+},
+{
+title:"Сталин",
+category:"Россия",
+short:"Быстро индустриализировал страну",
+full:"СССР стал индустриальной державой за короткое время...",
+deep:"Экспертно: рост был достигнут за счёт жёсткой системы управления..."
+},
+{
+title:"Наполеон",
+category:"Личности",
+short:"Гений стратегии, проигравший из-за масштаба",
+full:"Он доминировал в Европе, но недооценил Россию...",
+deep:"Экспертно: ошибка — перенос стратегии без адаптации..."
+}
+];
+
+let currentIndex = 0;
+
+function loadCard(){
+let cat=document.getElementById("category").value;
+let filtered=cards.filter(c=>c.category===cat);
+
+if(filtered.length===0) return;
+
+let card=filtered[currentIndex % filtered.length];
+
+document.getElementById("title").innerText=card.title;
+document.getElementById("short").innerText=card.short;
+document.getElementById("full").innerText=card.full;
+document.getElementById("deep").innerText=card.deep;
+
+document.getElementById("fullBlock").style.display="none";
+document.getElementById("deepBlock").style.display="none";
+}
+
+function nextCard(){
+currentIndex++;
+loadCard();
+}
+
+function showFull(){
+document.getElementById("fullBlock").style.display="block";
+}
+
+function showDeep(){
+document.getElementById("deepBlock").style.display="block";
+}
+
+function addFav(){
+let favs=JSON.parse(localStorage.getItem("favs"))||[];
+let title=document.getElementById("title").innerText;
+
+if(!favs.includes(title)){
+favs.push(title);
+localStorage.setItem("favs",JSON.stringify(favs));
+}
+
+alert("Сохранено ⭐");
+}
+
+document.getElementById("category").addEventListener("change",loadCard);
+
+loadCard();
+
+</script>
+
+</body>
+</html>
