@@ -1,223 +1,306 @@
 <!DOCTYPE html>
-<html>
+
+<html lang="ru">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MindForge</title>
 
 <style>
-body { font-family: Arial; background:#0f0f0f; color:white; padding:20px; }
-.card { background:#1c1c1c; padding:20px; border-radius:15px; }
-button { margin-top:10px; padding:12px; border:none; border-radius:10px; width:100%; font-size:16px;}
-.btn { background:#333; color:white; }
-.deep { background:#6a00ff; color:white; }
-.fav { background:#ff9800; color:white; }
-.next { background:#2196f3; color:white; }
-.progress { margin:10px 0; opacity:0.7; }
+body{
+background:#0f0f0f;
+color:white;
+font-family:Arial,sans-serif;
+padding:20px;
+max-width:900px;
+margin:auto;
+}
+
+h1{
+margin-bottom:10px;
+}
+
+.card{
+background:#1c1c1c;
+padding:20px;
+border-radius:15px;
+margin-top:20px;
+}
+
+button{
+width:100%;
+padding:12px;
+margin-top:10px;
+border:none;
+border-radius:10px;
+font-size:16px;
+cursor:pointer;
+}
+
+.btn{
+background:#333;
+color:white;
+}
+
+.fav{
+background:#ff9800;
+color:white;
+}
+
+.next{
+background:#2196f3;
+color:white;
+}
+
+.deep{
+background:#7b00ff;
+color:white;
+}
+
+.progress{
+opacity:0.8;
+margin-bottom:15px;
+}
+
+.hidden{
+display:none;
+}
+
+select{
+padding:10px;
+border-radius:10px;
+margin-bottom:15px;
+width:100%;
+}
+
+#message{
+margin-top:10px;
+color:#7CFC00;
+font-weight:bold;
+}
 </style>
+
 </head>
 
 <body>
 
-<h2>🧠 MindForge</h2>
+<h1>🧠 MindForge</h1>
 
-<p class="progress" id="progress">Прогресс: 0</p>
+<div class="progress" id="progress">
+Прогресс: 0
+</div>
 
-<select id="category">
-<option>Россия</option>
-<option>Личности</option>
-</select>
+<select id="category"></select>
 
 <div class="card">
-<h3 id="title"></h3>
+
+<h2 id="title"></h2>
+
 <p id="short"></p>
 
-<button class="btn" onclick="showFull()">🧠 ГЛУБЖЕ</button>
-<button class="fav" onclick="addFav()">⭐ В избранное</button>
-<button class="next" onclick="nextCard()">➡️ ЕЩЁ</button>
+<button class="btn" onclick="showFull()">
+🧠 ГЛУБЖЕ
+</button>
+
+<button class="fav" onclick="addFav()">
+⭐ В ИЗБРАННОЕ
+</button>
+
+<button class="next" onclick="nextCard()">
+➡️ СЛЕДУЮЩАЯ КАРТОЧКА
+</button>
+
+<div id="message"></div>
+
 </div>
 
-<div id="fullBlock" style="display:none;">
+<div id="fullBlock" class="hidden card">
+
+<h3>📖 Подробно</h3>
+
 <p id="full"></p>
-<button class="deep" onclick="showDeep()">🔥 ЕЩЁ ГЛУБЖЕ</button>
+
+<button class="deep" onclick="showDeep()">
+🔥 ЕЩЁ ГЛУБЖЕ
+</button>
+
 </div>
 
-<div id="deepBlock" style="display:none;">
+<div id="deepBlock" class="hidden card">
+
+<h3>🧠 Экспертный уровень</h3>
+
 <p id="deep"></p>
+
 </div>
 
 <script>
 
-const cards = [
-
-{
-title:"Пётр I",
-category:"Россия",
-short:"Создал современную Россию через жёсткие реформы",
-
-full:`📍 Контекст:
-Россия сильно отставала от Европы.
-
-⚙️ Что сделал:
-- создал флот
-- реформировал армию
-- усилил власть
-
-💥 Цена:
-- тяжёлые налоги
-- принудительный труд
-
-👉 Итог: Россия стала империей`,
-
-deep:`🧠 Экспертный уровень:
-
-📊 Парадокс:
-усилил государство → снизил свободу общества
-
-⚖️ Альтернатива:
-медленные реформы = меньше боли, но риск отставания
-
-👉 Вывод:
-ускоренное развитие почти всегда дорого стоит`
-},
-
-{
-title:"Иван III",
-category:"Россия",
-short:"Создал основу российского государства",
-
-full:`📍 Контекст:
-Россия была раздроблена и зависела от Орды
-
-⚙️ Что сделал:
-- объединил земли
-- прекратил зависимость от Орды
-- усилил власть Москвы
-
-👉 Итог: начало централизованного государства`,
-
-deep:`🧠 Экспертный уровень:
-
-📊 Стратегия:
-сначала усиление центра → потом расширение
-
-⚖️ Альтернатива:
-раздробленность могла сохраниться
-
-👉 Вывод:
-сильные государства создаются через централизацию`
-},
-
-{
-title:"Наполеон",
-category:"Личности",
-short:"Гений, проигравший из-за масштаба",
-
-full:`📍 Контекст:
-доминировал в Европе
-
-⚙️ Ошибка:
-применил ту же стратегию в России
-
-📦 Проблема:
-- расстояния
-- логистика
-
-👉 Итог: армия разрушилась`,
-
-deep:`🧠 Экспертный уровень:
-
-📊 Главная ошибка:
-игнорирование контекста
-
-⚖️ Альтернатива:
-не идти вглубь России
-
-👉 Вывод:
-стратегия должна меняться под условия`
-},
-
-{
-title:"Сталин",
-category:"Россия",
-short:"Быстро превратил СССР в индустриальную державу",
-
-full:`📍 Контекст:
-страна отставала
-
-⚙️ Что сделал:
-- индустриализация
-- централизованная экономика
-
-💥 Цена:
-- репрессии
-- жёсткий контроль
-
-👉 Итог: мощная индустрия`,
-
-deep:`🧠 Экспертный уровень:
-
-📊 Парадокс:
-рост через давление
-
-⚖️ Альтернатива:
-медленное развитие
-
-👉 Вывод:
-скорость развития часто требует контроля`
-}
-
-];
-
+let cards = [];
 let currentIndex = 0;
 let progress = 0;
 
+async function loadCards(){
+
+const response = await fetch("cards.json");
+cards = await response.json();
+
+populateCategories();
+loadCard();
+
+}
+
+function populateCategories(){
+
+const categories =
+[...new Set(cards.map(c => c.category))];
+
+const select =
+document.getElementById("category");
+
+select.innerHTML = "";
+
+categories.forEach(cat => {
+
+const option =
+document.createElement("option");
+
+option.value = cat;
+option.textContent = cat;
+
+select.appendChild(option);
+
+});
+
+select.addEventListener("change", () => {
+
+currentIndex = 0;
+loadCard();
+
+});
+
+}
+
+function getFilteredCards(){
+
+const category =
+document.getElementById("category").value;
+
+return cards.filter(
+c => c.category === category
+);
+
+}
+
 function loadCard(){
-let cat=document.getElementById("category").value;
-let filtered=cards.filter(c=>c.category===cat);
 
-if(filtered.length===0) return;
+const filtered = getFilteredCards();
 
-let card=filtered[currentIndex % filtered.length];
+if(filtered.length === 0) return;
 
-document.getElementById("title").innerText=card.title;
-document.getElementById("short").innerText=card.short;
-document.getElementById("full").innerText=card.full;
-document.getElementById("deep").innerText=card.deep;
+const card =
+filtered[currentIndex % filtered.length];
 
-document.getElementById("fullBlock").style.display="none";
-document.getElementById("deepBlock").style.display="none";
+document.getElementById("title").textContent =
+card.title;
+
+document.getElementById("short").textContent =
+card.short;
+
+document.getElementById("full").textContent =
+card.full;
+
+document.getElementById("deep").textContent =
+card.deep;
+
+document.getElementById("fullBlock")
+.classList.add("hidden");
+
+document.getElementById("deepBlock")
+.classList.add("hidden");
+
 }
 
 function nextCard(){
+
+const filtered = getFilteredCards();
+
 currentIndex++;
+
+if(currentIndex >= filtered.length){
+
+currentIndex = 0;
+
+document.getElementById("message")
+.textContent =
+"🎉 Ты просмотрел все карточки этой категории";
+
+}else{
+
+document.getElementById("message")
+.textContent = "";
+
+}
+
 progress++;
-document.getElementById("progress").innerText="Прогресс: "+progress;
+
+document.getElementById("progress")
+.textContent =
+"Прогресс: " + progress;
+
 loadCard();
+
 }
 
 function showFull(){
-document.getElementById("fullBlock").style.display="block";
+
+document.getElementById("fullBlock")
+.classList.remove("hidden");
+
 }
 
 function showDeep(){
-document.getElementById("deepBlock").style.display="block";
+
+document.getElementById("deepBlock")
+.classList.remove("hidden");
+
 }
 
 function addFav(){
-let favs=JSON.parse(localStorage.getItem("favs"))||[];
-let title=document.getElementById("title").innerText;
+
+let favs =
+JSON.parse(
+localStorage.getItem("favs")
+) || [];
+
+const title =
+document.getElementById("title")
+.textContent;
 
 if(!favs.includes(title)){
+
 favs.push(title);
-localStorage.setItem("favs",JSON.stringify(favs));
+
+localStorage.setItem(
+"favs",
+JSON.stringify(favs)
+);
+
+document.getElementById("message")
+.textContent =
+"⭐ Карточка добавлена в избранное";
+
+}else{
+
+document.getElementById("message")
+.textContent =
+"⭐ Уже находится в избранном";
+
 }
 
-alert("Сохранено ⭐");
 }
 
-document.getElementById("category").addEventListener("change",loadCard);
-
-loadCard();
+loadCards();
 
 </script>
 
