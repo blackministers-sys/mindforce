@@ -15,18 +15,12 @@ padding:20px;
 max-width:900px;
 margin:auto;
 }
-
-h1{
-margin-bottom:10px;
-}
-
 .card{
 background:#1c1c1c;
 padding:20px;
 border-radius:15px;
 margin-top:20px;
 }
-
 button{
 width:100%;
 padding:12px;
@@ -34,131 +28,63 @@ margin-top:10px;
 border:none;
 border-radius:10px;
 font-size:16px;
-cursor:pointer;
 }
-
-.btn{
-background:#333;
-color:white;
-}
-
-.fav{
-background:#ff9800;
-color:white;
-}
-
-.next{
-background:#2196f3;
-color:white;
-}
-
-.deep{
-background:#7b00ff;
-color:white;
-}
-
-.progress{
-opacity:0.8;
-margin-bottom:15px;
-}
-
-.hidden{
-display:none;
-}
-
 select{
+width:100%;
 padding:10px;
 border-radius:10px;
-margin-bottom:15px;
-width:100%;
 }
-
-#message{
-margin-top:10px;
-color:#7CFC00;
-font-weight:bold;
+.hidden{
+display:none;
 }
 </style>
 
 </head>
-
 <body>
 
 <h1>🧠 MindForge</h1>
 
-<div class="progress" id="progress">
-Прогресс: 0
-</div>
+<p id="counter">Загрузка...</p>
 
 <select id="category"></select>
 
 <div class="card">
-
 <h2 id="title"></h2>
-
 <p id="short"></p>
 
-<button class="btn" onclick="showFull()">
-🧠 ГЛУБЖЕ
-</button>
-
-<button class="fav" onclick="addFav()">
-⭐ В ИЗБРАННОЕ
-</button>
-
-<button class="next" onclick="nextCard()">
-➡️ СЛЕДУЮЩАЯ КАРТОЧКА
-</button>
-
-<div id="message"></div>
+<button onclick="showFull()">🧠 ГЛУБЖЕ</button> <button onclick="nextCard()">➡️ СЛЕДУЮЩАЯ КАРТОЧКА</button>
 
 </div>
 
-<div id="fullBlock" class="hidden card">
-
-<h3>📖 Подробно</h3>
-
+<div class="card hidden" id="fullBlock">
+<h3>Подробно</h3>
 <p id="full"></p>
-
-<button class="deep" onclick="showDeep()">
-🔥 ЕЩЁ ГЛУБЖЕ
-</button>
-
+<button onclick="showDeep()">🔥 ЕЩЁ ГЛУБЖЕ</button>
 </div>
 
-<div id="deepBlock" class="hidden card">
-
-<h3>🧠 Экспертный уровень</h3>
-
+<div class="card hidden" id="deepBlock">
+<h3>Экспертный уровень</h3>
 <p id="deep"></p>
-
 </div>
 
 <script>
 
 let cards = [];
 let currentIndex = 0;
-let progress = 0;
 
-async function loadCards(){
+async function init(){
 
-const response = await fetch("cards.json");
+const response = await fetch("cards.json?v=" + Date.now());
 cards = await response.json();
 
-populateCategories();
-loadCard();
-
-}
-
-function populateCategories(){
+document.getElementById("counter").innerText =
+"Карточек загружено: " + cards.length;
 
 const categories =
-[...new Set(cards.map(c => c.category))];
+["Все", ...new Set(cards.map(c => c.category))];
 
 const select =
 document.getElementById("category");
-
-select.innerHTML = "";
 
 categories.forEach(cat => {
 
@@ -173,134 +99,67 @@ select.appendChild(option);
 });
 
 select.addEventListener("change", () => {
-
 currentIndex = 0;
 loadCard();
-
 });
+
+loadCard();
 
 }
 
-function getFilteredCards(){
+function filteredCards(){
 
-const category =
+const cat =
 document.getElementById("category").value;
 
-return cards.filter(
-c => c.category === category
-);
+if(cat === "Все") return cards;
+
+return cards.filter(c => c.category === cat);
 
 }
 
 function loadCard(){
 
-const filtered = getFilteredCards();
+const list = filteredCards();
 
-if(filtered.length === 0) return;
+if(list.length === 0) return;
 
 const card =
-filtered[currentIndex % filtered.length];
+list[currentIndex % list.length];
 
-document.getElementById("title").textContent =
-card.title;
+title.textContent = card.title;
+short.textContent = card.short;
+full.textContent = card.full;
+deep.textContent = card.deep;
 
-document.getElementById("short").textContent =
-card.short;
-
-document.getElementById("full").textContent =
-card.full;
-
-document.getElementById("deep").textContent =
-card.deep;
-
-document.getElementById("fullBlock")
-.classList.add("hidden");
-
-document.getElementById("deepBlock")
-.classList.add("hidden");
+fullBlock.classList.add("hidden");
+deepBlock.classList.add("hidden");
 
 }
 
 function nextCard(){
 
-const filtered = getFilteredCards();
+const list = filteredCards();
 
 currentIndex++;
 
-if(currentIndex >= filtered.length){
-
+if(currentIndex >= list.length){
 currentIndex = 0;
-
-document.getElementById("message")
-.textContent =
-"🎉 Ты просмотрел все карточки этой категории";
-
-}else{
-
-document.getElementById("message")
-.textContent = "";
-
 }
-
-progress++;
-
-document.getElementById("progress")
-.textContent =
-"Прогресс: " + progress;
 
 loadCard();
 
 }
 
 function showFull(){
-
-document.getElementById("fullBlock")
-.classList.remove("hidden");
-
+fullBlock.classList.remove("hidden");
 }
 
 function showDeep(){
-
-document.getElementById("deepBlock")
-.classList.remove("hidden");
-
+deepBlock.classList.remove("hidden");
 }
 
-function addFav(){
-
-let favs =
-JSON.parse(
-localStorage.getItem("favs")
-) || [];
-
-const title =
-document.getElementById("title")
-.textContent;
-
-if(!favs.includes(title)){
-
-favs.push(title);
-
-localStorage.setItem(
-"favs",
-JSON.stringify(favs)
-);
-
-document.getElementById("message")
-.textContent =
-"⭐ Карточка добавлена в избранное";
-
-}else{
-
-document.getElementById("message")
-.textContent =
-"⭐ Уже находится в избранном";
-
-}
-
-}
-
-loadCards();
+init();
 
 </script>
 
