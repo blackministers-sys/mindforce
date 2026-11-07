@@ -16,6 +16,33 @@ final class VoiceCallManager: NSObject, ObservableObject {
     @Published private(set) var isMuted = false
     @Published private(set) var isIncomingCall = false
 
+    var connectionStatus: String {
+        VoiceServerConfiguration.shared.isConfigured ? "Сервис подключён" : "Сервис не настроен"
+    }
+
+    var callStatus: String { status }
+
+    func configure(serverURL: String, bootstrapToken: String) {
+        VoiceServerConfiguration.shared.serverURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        VoiceServerConfiguration.shared.apiToken = bootstrapToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        errorMessage = nil
+        status = VoiceServerConfiguration.shared.isConfigured
+            ? "Настройки телефонного сервера сохранены"
+            : "Телефонный сервер не настроен"
+    }
+
+    func placeCall(to number: String) {
+        startCall(to: number)
+    }
+
+    func hangUp() {
+        endCall()
+    }
+
+    func startPushRegistration() {
+        VoicePushManager.shared.start()
+    }
+
     private let callController = CXCallController()
     private let audioDevice = DefaultAudioDevice()
     private let provider: CXProvider
