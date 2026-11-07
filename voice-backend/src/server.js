@@ -176,10 +176,47 @@ app.post('/v1/voice/incoming', requireTwilioSignature, (_req, res) => {
 
 app.post('/v1/voice/whisper', requireTwilioSignature, (_req, res) => {
   const response = new twilio.twiml.VoiceResponse();
-  response.say(
+  const gather = response.gather({
+    numDigits: 1,
+    timeout: 15,
+    action: publicUrl('/v1/voice/recording-consent'),
+    method: 'POST',
+  });
+  gather.say(
     { language: 'ru-RU' },
-    'Внимание. Этот разговор будет записан. Если вы не согласны на запись, завершите вызов сейчас.',
+    'Разговор будет записываться. Чтобы согласиться на запись и продолжить разговор, нажмите 1. Если вы не согласны, просто не нажимайте кнопку.',
   );
+  response.say({ language: 'ru-RU' }, 'Согласие на запись не получено. Вызов завершается.');
+  response.hangup();
+  return sendTwiML(res, response);
+});
+
+app.post('/v1/voice/recording-consent', requireTwilioSignature, async (req, res) => {
+  const accepted = String(req.body.Digits || '') === '1';
+  const event = {
+    callSid: String(req.body.CallSid || ''),
+    accepted,
+    createdAt: new Date().toISOString(),
+  };
+  try {
+    await fs.promises.mkdir(DATA_DIR, { recursive: true });
+    await fs.promises.appendFile(
+      path.join(DATA_DIR, 'recording-consents.jsonl'),
+      JSON.stringify(event) + '\\n',
+      { mode: 0o600 },
+    );
+  } catch (error) {
+    console.error('Could not store recording consent:', error);
+    return res.status(500).send('Could not store consent');
+  }
+
+  const response = new twilio.twiml.VoiceResponse();
+  if (accepted) {
+    response.say({ language: 'ru-RU' }, 'Спасибо. Соединяем вас.');
+  } else {
+    response.say({ language: 'ru-RU' }, 'Согласие на запись не получено. Вызов завершается.');
+    response.hangup();
+  }
   return sendTwiML(res, response);
 });
 
