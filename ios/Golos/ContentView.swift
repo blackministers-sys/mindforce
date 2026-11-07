@@ -5,155 +5,26 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @StateObject private var callMonitor = CallMonitor()
     @StateObject private var recorder = MeetingRecorder()
-    @StateObject private var voiceCallManager = VoiceCallManager.shared
-    @ObservedObject private var voiceSettings = VoiceServerConfiguration.shared
-    @State private var phoneNumber = "+31"
+    @ObservedObject private var voice = VoiceCallManager.shared
+
     @State private var showingImporter = false
     @State private var importedFileName: String?
     @State private var importError: String?
+    @State private var serverURL = UserDefaults.standard.string(forKey: "golos.voice.serverURL") ?? ""
+    @State private var bootstrapKey = ""
+    @State private var phoneNumber = ""
+    @State private var hasAcknowledgedConsent = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 18) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Состояние звонков", systemImage: "phone.badge.waveform")
-                            .font(.headline)
-                        Text(callMonitor.callStateDescription)
-                            .font(.title3.weight(.semibold))
-                        Text("CallKit может сообщать состояние некоторых вызовов, но не предоставляет стороннему приложению аудиопоток разговора.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Телефонные звонки через «Голос»", systemImage: "phone.arrow.up.right")
-                            .font(.headline)
-                        Text(voiceCallManager.status)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        TextField("Номер в международном формате", text: $phoneNumber)
-                            .keyboardType(.phonePad)
-                            .textFieldStyle(.roundedBorder)
-                        HStack {
-                            Button {
-                                voiceCallManager.startCall(to: phoneNumber)
-                            } label: {
-                                Label("Позвонить", systemImage: "phone.fill")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(voiceCallManager.isCallActive)
-
-                            if voiceCallManager.isCallActive {
-                                Button(role: .destructive) {
-                                    voiceCallManager.endCall()
-                                } label: {
-                                    Label("Завершить", systemImage: "phone.down.fill")
-                                        .padding(.vertical, 10)
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                        }
-                        if voiceCallManager.isCallActive {
-                            Button {
-                                voiceCallManager.toggleMute()
-                            } label: {
-                                Label(voiceCallManager.isMuted ? "Включить микрофон" : "Выключить микрофон",
-                                      systemImage: voiceCallManager.isMuted ? "mic.slash" : "mic")
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        if let error = voiceCallManager.errorMessage {
-                            Text(error)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                        }
-                        DisclosureGroup("Подключение телефонного сервера") {
-                            VStack(alignment: .leading, spacing: 8) {
-                                TextField("HTTPS URL backend", text: $voiceSettings.serverURL)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
-                                    .keyboardType(.URL)
-                                    .textFieldStyle(.roundedBorder)
-                                SecureField("Ключ доступа приложения", text: $voiceSettings.apiToken)
-                                    .textFieldStyle(.roundedBorder)
-                                Text("Ключ хранится в связке ключей iPhone. Адрес сервера должен начинаться с https://.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.top, 8)
-                        }
-                        .font(.subheadline)
-                        Text("Звонки проходят через отдельный VoIP-номер и сервер. Обычные SIM-звонки и звонки WhatsApp/Telegram приложение не перехватывает. Запись выполняется провайдером после голосового уведомления участников.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Запись встреч и заметок", systemImage: "waveform")
-                            .font(.headline)
-                        Text(recorder.status)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button {
-                            recorder.isRecording ? recorder.stop() : recorder.start()
-                        } label: {
-                            Label(recorder.isRecording ? "Остановить запись" : "Начать запись",
-                                  systemImage: recorder.isRecording ? "stop.circle.fill" : "record.circle")
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(recorder.isRecording ? .red : .mint)
-                        .foregroundStyle(recorder.isRecording ? .white : .black)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Импорт готовой записи", systemImage: "square.and.arrow.down")
-                            .font(.headline)
-                        Button("Выбрать аудиофайл") {
-                            showingImporter = true
-                        }
-                        .buttonStyle(.bordered)
-                        if let importedFileName {
-                            Text("Добавлен файл: \(importedFileName)")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                        if let importError {
-                            Text(importError)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("Ограничение iOS", systemImage: "info.circle")
-                            .font(.headline)
-                        Text("Это технический прототип. Он не записывает звук обычных сотовых звонков, WhatsApp, Telegram или FaceTime. Запись микрофона во время чужого звонка не является способом получить звук собеседника и может быть заблокирована системой.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Text("Автоматический запуск скрытой записи не включён. Перед записью разговоров нужно обеспечить уведомление и согласие участников.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
+                VStack(spacing: 16) {
+                    voiceSettings
+                    phoneDialer
+                    meetingRecorder
+                    importCard
+                    callMonitorCard
+                    platformNote
                 }
                 .padding()
             }
@@ -164,6 +35,140 @@ struct ContentView: View {
             }
         }
         .tint(Color(red: 0.35, green: 0.82, blue: 0.68))
+    }
+
+    private var voiceSettings: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Телефонный сервис", systemImage: "network")
+                .font(.headline)
+            Text(voice.connectionStatus)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(voice.connectionStatus.contains("подключён") ? .green : .secondary)
+            TextField("HTTPS-адрес сервера", text: $serverURL)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.URL)
+                .autocorrectionDisabled()
+                .textFieldStyle(.roundedBorder)
+            SecureField("Ключ доступа к «Голосу»", text: $bootstrapKey)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .textFieldStyle(.roundedBorder)
+            Button("Сохранить и подключить") {
+                voice.configure(serverURL: serverURL, bootstrapToken: bootstrapKey)
+                bootstrapKey = ""
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(serverURL.isEmpty || bootstrapKey.isEmpty)
+            Text("Секрет Twilio хранится только на сервере. Здесь нужен отдельный ключ доступа приложения.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .cardStyle()
+    }
+
+    private var phoneDialer: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Звонок через «Голос»", systemImage: "phone.arrow.up.right")
+                .font(.headline)
+            TextField("+31612345678", text: $phoneNumber)
+                .keyboardType(.phonePad)
+                .textFieldStyle(.roundedBorder)
+            Toggle("Я уведомлён о записи и согласии собеседника", isOn: $hasAcknowledgedConsent)
+                .font(.footnote)
+            Button {
+                voice.placeCall(to: phoneNumber)
+            } label: {
+                Label("Позвонить и записать", systemImage: "phone.fill")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!hasAcknowledgedConsent || phoneNumber.isEmpty || voice.connectionStatus == "Сервис не настроен")
+            if voice.isCallActive {
+                Button(role: .destructive) {
+                    voice.hangUp()
+                } label: {
+                    Label("Завершить звонок", systemImage: "phone.down.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+            Text(voice.callStatus)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text("Для входящих звонков на подключённый Twilio-номер приложение сможет принимать системный вызов через CallKit.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .cardStyle()
+    }
+
+    private var meetingRecorder: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Запись встреч и заметок", systemImage: "waveform")
+                .font(.headline)
+            Text(recorder.status)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Button {
+                recorder.isRecording ? recorder.stop() : recorder.start()
+            } label: {
+                Label(recorder.isRecording ? "Остановить запись" : "Начать запись",
+                      systemImage: recorder.isRecording ? "stop.circle.fill" : "record.circle")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(recorder.isRecording ? .red : .mint)
+            .foregroundStyle(recorder.isRecording ? .white : .black)
+        }
+        .cardStyle()
+    }
+
+    private var importCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Импорт готовой записи", systemImage: "square.and.arrow.down")
+                .font(.headline)
+            Button("Выбрать аудиофайл") {
+                showingImporter = true
+            }
+            .buttonStyle(.bordered)
+            if let importedFileName {
+                Text("Добавлен файл: \(importedFileName)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if let importError {
+                Text(importError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        }
+        .cardStyle()
+    }
+
+    private var callMonitorCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Состояние системных вызовов", systemImage: "phone.badge.waveform")
+                .font(.headline)
+            Text(callMonitor.callStateDescription)
+                .font(.subheadline)
+            Text("Наблюдение за системными вызовами не даёт доступа к их аудио. Запись доступна только для звонков, проведённых через сервис «Голос», либо для импортированных файлов.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .cardStyle()
+    }
+
+    private var platformNote: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Важно о звонках", systemImage: "info.circle")
+                .font(.headline)
+            Text("Обычные номера доступны через собственный телефонный шлюз. WhatsApp, Telegram и FaceTime не перехватываются. Перед записью необходимо уведомить участников и соблюдать местные требования к согласию.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .cardStyle()
     }
 
     private func importAudio(_ result: Result<[URL], Error>) {
@@ -185,5 +190,14 @@ struct ContentView: View {
         } catch {
             importError = "Не удалось импортировать файл: \(error.localizedDescription)"
         }
+    }
+}
+
+private extension View {
+    func cardStyle() -> some View {
+        self
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
     }
 }
