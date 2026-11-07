@@ -1,0 +1,13 @@
+{
+  "name": "Голос — умный диктофон",
+  "short_name": "Голос",
+  "description": "Запись разговоров, идей и заметок",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101713",
+  "theme_color": "#101713",
+  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
