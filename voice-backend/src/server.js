@@ -202,7 +202,7 @@ app.post('/v1/voice/recording-consent', requireTwilioSignature, async (req, res)
     await fs.promises.mkdir(DATA_DIR, { recursive: true });
     await fs.promises.appendFile(
       path.join(DATA_DIR, 'recording-consents.jsonl'),
-      JSON.stringify(event) + '\\n',
+      JSON.stringify(event) + '\n',
       { mode: 0o600 },
     );
   } catch (error) {
