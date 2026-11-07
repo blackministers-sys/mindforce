@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101713">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Личный AI-диктофон: записывайте разговоры, сохраняйте идеи и возвращайтесь к важному.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <title>Голос — умный диктофон</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Голос">
+        <span class="brand-mark"><span></span><span></span><span></span><span></span></span>
+        <span>голос<span class="brand-dot">.</span></span>
+      </a>
+      <button id="installBtn" class="icon-btn install-btn" hidden aria-label="Установить приложение">↓</button>
+      <div class="avatar">А</div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div class="eyebrow"><span class="live-dot"></span> ВАШЕ ПРОСТРАНСТВО ЗВУКА</div>
+        <h1>Мысли звучат.<br><em>Мы сохраняем.</em></h1>
+        <p>Записывайте встречи, идеи и разговоры. Всё важное останется под рукой.</p>
+      </section>
+
+      <nav class="tabs" aria-label="Разделы">
+        <button class="tab active" data-tab="record">Запись</button>
+        <button class="tab" data-tab="library">Библиотека <span id="countBadge">0</span></button>
+      </nav>
+
+      <section id="recordView" class="view">
+        <div class="record-card">
+          <div class="record-topline"><span id="recordState">ГОТОВ К ЗАПИСИ</span><span class="secure-label">● Сохранение на устройстве</span></div>
+          <div class="wave-wrap" id="waveWrap" aria-hidden="true">
+            <div class="wave" id="wave"></div>
+          </div>
+          <div class="timer" id="timer">00:00<span> / запись</span></div>
+          <p class="record-hint" id="recordHint">Нажмите кнопку, чтобы начать запись</p>
+          <button id="recordBtn" class="record-button" aria-label="Начать запись"><span class="record-button-inner"></span></button>
+          <div class="record-actions">
+            <button id="pauseBtn" class="secondary-btn" disabled>Ⅱ Пауза</button>
+            <button id="finishBtn" class="secondary-btn finish" disabled>■ Завершить</button>
+          </div>
+          <div class="record-foot"><span>МИКРОФОН УСТРОЙСТВА</span><span id="micStatus">ОЖИДАНИЕ</span></div>
+        </div>
+
+        <div class="quick-note">
+          <div class="quick-icon">✳</div>
+          <div><strong>Не готовы записывать?</strong><p>Добавьте мысль или заметку вручную.</p></div>
+          <button id="quickNoteBtn" class="arrow-btn" aria-label="Добавить заметку">↗</button>
+        </div>
+
+        <div class="section-heading"><div><span class="eyebrow">ВАША ИСТОРИЯ</span><h2>Недавнее</h2></div><button class="text-btn" id="allRecordingsBtn">Все записи ↗</button></div>
+        <div id="recentList" class="recording-list"><div class="empty-state">Здесь появятся ваши записи</div></div>
+      </section>
+
+      <section id="libraryView" class="view" hidden>
+        <div class="library-heading"><div><span class="eyebrow">ВАШ АРХИВ</span><h2>Библиотека</h2><p>Все ваши записи и заметки в одном месте.</p></div></div>
+        <label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Поиск по названию и заметкам…"></label>
+        <div class="filter-row">
+          <button class="filter-chip selected" data-filter="all">Все</button>
+          <button class="filter-chip" data-filter="audio">Аудио</button>
+          <button class="filter-chip" data-filter="note">Заметки</button>
+        </div>
+        <div id="libraryList" class="recording-list"><div class="empty-state">Пока здесь пусто</div></div>
+      </section>
+    </main>
+
+    <footer><span>ГОЛОС · ЛИЧНЫЙ ДИКТОФОН</span><span>ВАШИ ЗАПИСИ — ВАШИ</span></footer>
+  </div>
+
+  <dialog id="detailDialog" class="detail-dialog">
+    <form method="dialog" class="dialog-head"><span class="eyebrow">ЗАПИСЬ</span><button class="close-btn" aria-label="Закрыть">×</button></form>
+    <div class="dialog-content">
+      <input id="detailTitle" class="title-input" maxlength="100" aria-label="Название записи">
+      <div id="detailMeta" class="detail-meta"></div>
+      <div id="audioPlayerWrap" class="audio-player-wrap"></div>
+      <label class="field-label">ЗАМЕТКИ</label>
+      <textarea id="detailNotes" rows="5" placeholder="Добавьте контекст, важные мысли или следующие шаги…"></textarea>
+      <div class="dialog-actions"><button id="saveDetailBtn" class="primary-btn" type="button">Сохранить</button><button id="downloadBtn" class="secondary-btn" type="button">↓ Скачать аудио</button></div>
+      <button id="deleteBtn" class="delete-btn" type="button">Удалить запись</button>
+    </div>
+  </dialog>
+
+  <dialog id="noteDialog" class="detail-dialog">
+    <form method="dialog" class="dialog-head"><span class="eyebrow">БЫСТРАЯ ЗАМЕТКА</span><button class="close-btn" aria-label="Закрыть">×</button></form>
+    <div class="dialog-content">
+      <input id="noteTitle" class="title-input" maxlength="100" placeholder="Название заметки">
+      <textarea id="noteBody" rows="7" placeholder="Запишите мысль, идею или то, что важно не забыть…"></textarea>
+      <button id="saveNoteBtn" class="primary-btn" type="button">Сохранить заметку</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
