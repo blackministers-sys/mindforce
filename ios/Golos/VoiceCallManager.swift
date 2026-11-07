@@ -120,6 +120,27 @@ final class VoiceCallManager: NSObject, ObservableObject {
         registerPushDeviceTokenIfPossible()
     }
 
+    /// Tests the authenticated backend token endpoint without initiating a call.
+    func validateConfiguration() {
+        guard VoiceServerConfiguration.shared.isConfigured else {
+            status = "Укажите HTTPS-адрес сервера и персональный ключ доступа"
+            errorMessage = "Настройки неполные."
+            return
+        }
+        status = "Проверяем подключение к телефонному серверу…"
+        errorMessage = nil
+        VoiceTokenService.shared.fetchAccessToken { [weak self] result in
+            switch result {
+            case .success:
+                self?.status = "Сервер подключён. Можно совершать звонки."
+                self?.errorMessage = nil
+            case .failure(let error):
+                self?.status = "Не удалось подключиться к серверу"
+                self?.errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     private func registerPushDeviceTokenIfPossible() {
         guard let deviceToken = pendingPushDeviceToken,
               VoiceServerConfiguration.shared.isConfigured else {
