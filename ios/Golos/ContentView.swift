@@ -5,6 +5,9 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @StateObject private var callMonitor = CallMonitor()
     @StateObject private var recorder = MeetingRecorder()
+    @StateObject private var voiceCallManager = VoiceCallManager.shared
+    @ObservedObject private var voiceSettings = VoiceServerConfiguration.shared
+    @State private var phoneNumber = "+31"
     @State private var showingImporter = false
     @State private var importedFileName: String?
     @State private var importError: String?
@@ -19,6 +22,74 @@ struct ContentView: View {
                         Text(callMonitor.callStateDescription)
                             .font(.title3.weight(.semibold))
                         Text("CallKit может сообщать состояние некоторых вызовов, но не предоставляет стороннему приложению аудиопоток разговора.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Телефонные звонки через «Голос»", systemImage: "phone.arrow.up.right")
+                            .font(.headline)
+                        Text(voiceCallManager.status)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        TextField("Номер в международном формате", text: $phoneNumber)
+                            .keyboardType(.phonePad)
+                            .textFieldStyle(.roundedBorder)
+                        HStack {
+                            Button {
+                                voiceCallManager.startCall(to: phoneNumber)
+                            } label: {
+                                Label("Позвонить", systemImage: "phone.fill")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(voiceCallManager.isCallActive)
+
+                            if voiceCallManager.isCallActive {
+                                Button(role: .destructive) {
+                                    voiceCallManager.endCall()
+                                } label: {
+                                    Label("Завершить", systemImage: "phone.down.fill")
+                                        .padding(.vertical, 10)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                        if voiceCallManager.isCallActive {
+                            Button {
+                                voiceCallManager.toggleMute()
+                            } label: {
+                                Label(voiceCallManager.isMuted ? "Включить микрофон" : "Выключить микрофон",
+                                      systemImage: voiceCallManager.isMuted ? "mic.slash" : "mic")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        if let error = voiceCallManager.errorMessage {
+                            Text(error)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                        }
+                        DisclosureGroup("Подключение телефонного сервера") {
+                            VStack(alignment: .leading, spacing: 8) {
+                                TextField("HTTPS URL backend", text: $voiceSettings.serverURL)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .keyboardType(.URL)
+                                    .textFieldStyle(.roundedBorder)
+                                SecureField("Ключ доступа приложения", text: $voiceSettings.apiToken)
+                                    .textFieldStyle(.roundedBorder)
+                                Text("Ключ хранится в связке ключей iPhone. Адрес сервера должен начинаться с https://.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.top, 8)
+                        }
+                        .font(.subheadline)
+                        Text("Звонки проходят через отдельный VoIP-номер и сервер. Обычные SIM-звонки и звонки WhatsApp/Telegram приложение не перехватывает. Запись выполняется провайдером после голосового уведомления участников.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
