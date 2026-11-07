@@ -297,6 +297,7 @@ extension VoiceCallManager: NotificationDelegate {
 
         let update = CXCallUpdate()
         update.remoteHandle = CXHandle(type: .generic, value: caller)
+        update.localizedCallerName = "Записываемый звонок"
         update.supportsDTMF = true
         update.supportsHolding = true
         update.supportsGrouping = false
