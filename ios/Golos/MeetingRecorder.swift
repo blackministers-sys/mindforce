@@ -55,7 +55,7 @@ final class MeetingRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate
         recorder?.stop()
         recorder = nil
         isRecording = false
-        status = "Запись сохранена в приложении «Файлы»"
+        status = "Запись сохранена в библиотеке приложения"
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
