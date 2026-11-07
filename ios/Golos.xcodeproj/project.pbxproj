@@ -14,6 +14,7 @@
     A10000000000000000000007 /* VoicePushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* VoicePushManager.swift */; };
     A10000000000000000000008 /* VoiceServerConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* VoiceServerConfiguration.swift */; };
     A10000000000000000000009 /* VoiceTokenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* VoiceTokenService.swift */; };
+    A10000000000000000000010 /* VoiceRecordingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* VoiceRecordingsStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,11 +28,12 @@
     B10000000000000000000008 /* VoicePushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoicePushManager.swift; sourceTree = "<group>"; };
     B10000000000000000000009 /* VoiceServerConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceServerConfiguration.swift; sourceTree = "<group>"; };
     B10000000000000000000010 /* VoiceTokenService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTokenService.swift; sourceTree = "<group>"; };
+    B10000000000000000000011 /* VoiceRecordingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceRecordingsStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
     C10000000000000000000001 = {isa = PBXGroup; children = (C10000000000000000000002 /* Golos */, C10000000000000000000003 /* Products */, ); sourceTree = "<group>"; };
-    C10000000000000000000002 /* Golos */ = {isa = PBXGroup; path = Golos; sourceTree = "<group>"; children = (B10000000000000000000001, B10000000000000000000002, B10000000000000000000003, B10000000000000000000004, B10000000000000000000005, B10000000000000000000007, B10000000000000000000008, B10000000000000000000009, B10000000000000000000010, ); };
+    C10000000000000000000002 /* Golos */ = {isa = PBXGroup; path = Golos; sourceTree = "<group>"; children = (B10000000000000000000001, B10000000000000000000002, B10000000000000000000003, B10000000000000000000004, B10000000000000000000005, B10000000000000000000007, B10000000000000000000008, B10000000000000000000009, B10000000000000000000010, B10000000000000000000011, ); };
     C10000000000000000000003 /* Products */ = {isa = PBXGroup; children = (B10000000000000000000006, ); name = Products; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
