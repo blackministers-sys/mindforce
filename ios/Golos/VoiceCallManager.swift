@@ -23,8 +23,10 @@ final class VoiceCallManager: NSObject, ObservableObject {
     var callStatus: String { status }
 
     func configure(serverURL: String, bootstrapToken: String) {
-        VoiceServerConfiguration.shared.serverURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        VoiceServerConfiguration.shared.apiToken = bootstrapToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        VoiceServerConfiguration.shared.save(
+            serverURL: serverURL,
+            apiToken: bootstrapToken
+        )
         errorMessage = nil
         status = VoiceServerConfiguration.shared.isConfigured
             ? "Настройки телефонного сервера сохранены"
