@@ -7,6 +7,7 @@ struct ContentView: View {
     @StateObject private var recorder = MeetingRecorder()
     @ObservedObject private var voice = VoiceCallManager.shared
     @ObservedObject private var configuration = VoiceServerConfiguration.shared
+    @StateObject private var recordingsStore = VoiceRecordingsStore()
 
     @State private var showingImporter = false
     @State private var importedFileName: String?
@@ -22,6 +23,7 @@ struct ContentView: View {
                 VStack(spacing: 16) {
                     voiceSettings
                     phoneDialer
+                    recordingsLibrary
                     meetingRecorder
                     importCard
                     callMonitorCard
@@ -126,6 +128,39 @@ struct ContentView: View {
         .cardStyle()
     }
 
+
+    private var recordingsLibrary: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Записи звонков", systemImage: "waveform.badge.mic")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    recordingsStore.refresh()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .accessibilityLabel("Обновить список записей")
+            }
+            if recordingsStore.isLoading {
+                ProgressView()
+            }
+            Text(recordingsStore.message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            ForEach(recordingsStore.recordings) { recording in
+                VoiceRecordingRow(recording: recording, store: recordingsStore)
+                if recording.id != recordingsStore.recordings.last?.id {
+                    Divider()
+                }
+            }
+            Text("Аудио загружается по защищённому соединению из телефонного backend.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .cardStyle()
+    }
+
     private var meetingRecorder: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Запись встреч и заметок", systemImage: "waveform")
@@ -213,6 +248,62 @@ struct ContentView: View {
         } catch {
             importError = "Не удалось импортировать файл: \(error.localizedDescription)"
         }
+    }
+}
+
+
+private struct VoiceRecordingRow: View {
+    let recording: VoiceRecording
+    @ObservedObject var store: VoiceRecordingsStore
+    @State private var isDownloading = false
+    @State private var downloadedURL: URL?
+    @State private var downloadError: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(recording.dateLabel)
+                        .font(.subheadline.weight(.medium))
+                    Text("\(recording.durationLabel) · \(recording.channels) канал(а)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if let downloadedURL {
+                    ShareLink(item: downloadedURL) {
+                        Label("Поделиться", systemImage: "square.and.arrow.up")
+                            .labelStyle(.iconOnly)
+                    }
+                    .accessibilityLabel("Поделиться аудиозаписью")
+                } else {
+                    Button {
+                        isDownloading = true
+                        downloadError = nil
+                        store.download(recording) { result in
+                            isDownloading = false
+                            switch result {
+                            case .success(let url): downloadedURL = url
+                            case .failure(let error): downloadError = error.localizedDescription
+                            }
+                        }
+                    } label: {
+                        if isDownloading {
+                            ProgressView()
+                        } else {
+                            Label("Скачать", systemImage: "arrow.down.circle")
+                        }
+                    }
+                    .disabled(isDownloading)
+                }
+            }
+            if let downloadError {
+                Text(downloadError)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+            }
+        }
+        .padding(.vertical, 3)
     }
 }
 
