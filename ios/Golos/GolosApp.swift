@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 @main
 struct GolosApp: App {
@@ -13,9 +12,11 @@ struct GolosApp: App {
 }
 
 final class GolosAppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        VoicePushManager.shared.start()
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        VoiceCallManager.shared.startPushRegistration()
         return true
     }
 }
