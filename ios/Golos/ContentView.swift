@@ -36,6 +36,13 @@ struct ContentView: View {
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
                 importAudio(result)
             }
+            .onChange(of: voice.status) { newStatus in
+                if newStatus == "Телефония готова" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        recordingsStore.refresh()
+                    }
+                }
+            }
         }
         .tint(Color(red: 0.35, green: 0.82, blue: 0.68))
     }
@@ -63,6 +70,7 @@ struct ContentView: View {
             Button("Сохранить настройки") {
                 configuration.save(serverURL: serverURLDraft, apiToken: apiTokenDraft)
                 apiTokenDraft = ""
+                recordingsStore.refresh()
             }
             .buttonStyle(.borderedProminent)
             .disabled(serverURLDraft.isEmpty || apiTokenDraft.isEmpty)
