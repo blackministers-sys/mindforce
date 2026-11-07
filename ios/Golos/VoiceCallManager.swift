@@ -290,6 +290,11 @@ extension VoiceCallManager: CXProviderDelegate {
 
 extension VoiceCallManager: NotificationDelegate {
     func callInviteReceived(callInvite: CallInvite) {
+        guard UserDefaults.standard.bool(forKey: "golos.recording.accepted") else {
+            callInvite.reject()
+            status = "Входящий звонок отклонён: сначала разрешите запись звонков в приложении."
+            return
+        }
         activeCallInvites[callInvite.uuid] = callInvite
         isIncomingCall = true
         let caller = (callInvite.from ?? "Входящий звонок").replacingOccurrences(of: "client:", with: "")
