@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+@MainActor
 struct ContentView: View {
     @StateObject private var callMonitor = CallMonitor()
     @StateObject private var recorder = MeetingRecorder()
