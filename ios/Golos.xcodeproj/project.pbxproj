@@ -1,0 +1,89 @@
+// !$*UTF8*$!
+{
+  archiveVersion = 1;
+  classes = {};
+  objectVersion = 56;
+  objects = {
+
+/* Begin PBXBuildFile section */
+    A10000000000000000000001 /* GolosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* GolosApp.swift */; };
+    A10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* ContentView.swift */; };
+    A10000000000000000000003 /* CallMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* CallMonitor.swift */; };
+    A10000000000000000000004 /* MeetingRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* MeetingRecorder.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+    B10000000000000000000001 /* GolosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolosApp.swift; sourceTree = "<group>"; };
+    B10000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+    B10000000000000000000003 /* CallMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallMonitor.swift; sourceTree = "<group>"; };
+    B10000000000000000000004 /* MeetingRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingRecorder.swift; sourceTree = "<group>"; };
+    B10000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+    B10000000000000000000006 /* Golos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Golos.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+    C10000000000000000000001 = {isa = PBXGroup; children = (C10000000000000000000002 /* Golos */, C10000000000000000000003 /* Products */, ); sourceTree = "<group>"; };
+    C10000000000000000000002 /* Golos */ = {isa = PBXGroup; path = Golos; sourceTree = "<group>"; children = (B10000000000000000000001, B10000000000000000000002, B10000000000000000000003, B10000000000000000000004, B10000000000000000000005, ); };
+    C10000000000000000000003 /* Products */ = {isa = PBXGroup; children = (B10000000000000000000006, ); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+    D10000000000000000000001 /* Golos */ = {
+      isa = PBXNativeTarget;
+      buildConfigurationList = E10000000000000000000002;
+      buildPhases = (F10000000000000000000001, F10000000000000000000002, F10000000000000000000003, );
+      buildRules = ();
+      dependencies = ();
+      name = Golos;
+      productName = Golos;
+      productReference = B10000000000000000000006;
+      productType = "com.apple.product-type.application";
+    };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+    D10000000000000000000002 /* Project object */ = {
+      isa = PBXProject;
+      attributes = {BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 1600; };
+      buildConfigurationList = E10000000000000000000001;
+      compatibilityVersion = "Xcode 14.0";
+      developmentRegion = ru;
+      hasScannedForEncodings = 0;
+      knownRegions = (en, Base, ru, );
+      mainGroup = C10000000000000000000001;
+      productRefGroup = C10000000000000000000003;
+      projectDirPath = "";
+      projectRoot = "";
+      targets = (D10000000000000000000001, );
+    };
+/* End PBXProject section */
+
+/* Begin PBXBuildFile section */
+/* End PBXBuildFile section */
+
+/* Begin PBXSourcesBuildPhase section */
+    F10000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+    F10000000000000000000002 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+    F10000000000000000000003 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+    E10000000000000000000003 /* Project Debug */ = {isa = XCBuildConfiguration; buildSettings = {IPHONEOS_DEPLOYMENT_TARGET = 16.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; }; name = Debug; };
+    E10000000000000000000004 /* Project Release */ = {isa = XCBuildConfiguration; buildSettings = {IPHONEOS_DEPLOYMENT_TARGET = 16.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; }; name = Release; };
+    E10000000000000000000005 /* Target Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGNING_ALLOWED = NO; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Golos/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 16.0; PRODUCT_BUNDLE_IDENTIFIER = com.blackministers.golos; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Debug; };
+    E10000000000000000000006 /* Target Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGNING_ALLOWED = NO; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Golos/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 16.0; PRODUCT_BUNDLE_IDENTIFIER = com.blackministers.golos; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+    E10000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (E10000000000000000000003, E10000000000000000000004, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+    E10000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (E10000000000000000000005, E10000000000000000000006, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+  };
+  rootObject = D10000000000000000000002 /* Project object */;
+}
