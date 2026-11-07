@@ -67,9 +67,10 @@ struct ContentView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
-            Button("Сохранить настройки") {
+            Button("Сохранить и проверить") {
                 configuration.save(serverURL: serverURLDraft, apiToken: apiTokenDraft)
                 apiTokenDraft = ""
+                voice.validateConfiguration()
                 recordingsStore.refresh()
             }
             .buttonStyle(.borderedProminent)
