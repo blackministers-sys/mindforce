@@ -6,12 +6,11 @@ struct ContentView: View {
     @StateObject private var callMonitor = CallMonitor()
     @StateObject private var recorder = MeetingRecorder()
     @ObservedObject private var voice = VoiceCallManager.shared
+    @ObservedObject private var serverConfiguration = VoiceServerConfiguration.shared
 
     @State private var showingImporter = false
     @State private var importedFileName: String?
     @State private var importError: String?
-    @State private var serverURL = UserDefaults.standard.string(forKey: "golos.voice.serverURL") ?? ""
-    @State private var bootstrapKey = ""
     @State private var phoneNumber = ""
     @State private var hasAcknowledgedConsent = false
 
@@ -41,27 +40,31 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Телефонный сервис", systemImage: "network")
                 .font(.headline)
-            Text(voice.connectionStatus)
+            Text(voice.status)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(voice.connectionStatus.contains("подключён") ? .green : .secondary)
-            TextField("HTTPS-адрес сервера", text: $serverURL)
+                .foregroundStyle(voice.status.contains("готова") || voice.status.contains("подключ") ? .green : .secondary)
+            TextField("HTTPS-адрес сервера", text: $serverConfiguration.serverURL)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
-            SecureField("Ключ доступа к «Голосу»", text: $bootstrapKey)
+            SecureField("Персональный ключ доступа", text: $serverConfiguration.apiToken)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
-            Button("Сохранить и подключить") {
-                voice.configure(serverURL: serverURL, bootstrapToken: bootstrapKey)
-                bootstrapKey = ""
+            Button("Проверить подключение") {
+                voice.validateConfiguration()
             }
             .buttonStyle(.borderedProminent)
-            .disabled(serverURL.isEmpty || bootstrapKey.isEmpty)
-            Text("Секрет Twilio хранится только на сервере. Здесь нужен отдельный ключ доступа приложения.")
+            .disabled(!serverConfiguration.isConfigured)
+            Text("Секреты Twilio хранятся только на сервере. Здесь используется отдельный пользовательский ключ доступа.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if let error = voice.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         }
         .cardStyle()
     }
@@ -76,28 +79,31 @@ struct ContentView: View {
             Toggle("Я уведомлён о записи и согласии собеседника", isOn: $hasAcknowledgedConsent)
                 .font(.footnote)
             Button {
-                voice.placeCall(to: phoneNumber)
+                voice.startCall(to: phoneNumber)
             } label: {
                 Label("Позвонить и записать", systemImage: "phone.fill")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(!hasAcknowledgedConsent || phoneNumber.isEmpty || voice.connectionStatus == "Сервис не настроен")
+            .disabled(!hasAcknowledgedConsent || phoneNumber.isEmpty || !serverConfiguration.isConfigured || voice.isCallActive)
             if voice.isCallActive {
-                Button(role: .destructive) {
-                    voice.hangUp()
-                } label: {
-                    Label("Завершить звонок", systemImage: "phone.down.fill")
-                        .frame(maxWidth: .infinity)
+                HStack {
+                    Button(role: .destructive) {
+                        voice.endCall()
+                    } label: {
+                        Label("Завершить звонок", systemImage: "phone.down.fill")
+                    }
+                    Button {
+                        voice.toggleMute()
+                    } label: {
+                        Label("Микрофон: " + (voice.isMuted ? "выключен" : "включён"), systemImage: voice.isMuted ? "mic.slash" : "mic")
+                    }
                 }
                 .buttonStyle(.bordered)
             }
-            Text(voice.callStatus)
+            Text(voice.status)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text("Для входящих звонков на подключённый Twilio-номер приложение сможет принимать системный вызов через CallKit.")
-                .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .cardStyle()
@@ -164,7 +170,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Важно о звонках", systemImage: "info.circle")
                 .font(.headline)
-            Text("Обычные номера доступны через собственный телефонный шлюз. WhatsApp, Telegram и FaceTime не перехватываются. Перед записью необходимо уведомить участников и соблюдать местные требования к согласию.")
+            Text("Обычные номера доступны через собственную телефонию внутри приложения. WhatsApp, Telegram и FaceTime не перехватываются. Перед записью необходимо уведомить участников и соблюдать местные требования к согласию.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
