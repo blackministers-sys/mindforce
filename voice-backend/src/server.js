@@ -83,7 +83,7 @@ function sendTwiML(res, voiceResponse) {
   res.type('text/xml').send(voiceResponse.toString());
 }
 
-function addRecordingDial(response, destination, destinationType) {
+function addRecordingDial(response, destination, destinationType, requireDestinationConsent = true) {
   const callerId = process.env.TWILIO_CALLER_ID;
   if (!isE164(callerId)) {
     throw new Error('TWILIO_CALLER_ID должен быть номером E.164, принадлежащим вашему аккаунту Twilio.');
@@ -99,7 +99,11 @@ function addRecordingDial(response, destination, destinationType) {
   });
 
   if (destinationType === 'client') {
-    dial.client({ url: publicUrl('/v1/voice/whisper'), method: 'POST' }, destination);
+    if (requireDestinationConsent) {
+      dial.client({ url: publicUrl('/v1/voice/whisper'), method: 'POST' }, destination);
+    } else {
+      dial.client(destination);
+    }
   } else {
     dial.number({ url: publicUrl('/v1/voice/whisper'), method: 'POST' }, destination);
   }
@@ -158,12 +162,51 @@ app.post('/v1/voice/twiml', requireTwilioSignature, (req, res) => {
 
 app.post('/v1/voice/incoming', requireTwilioSignature, (_req, res) => {
   const response = new twilio.twiml.VoiceResponse();
-  response.say(
+  const gather = response.gather({
+    numDigits: 1,
+    timeout: 15,
+    action: publicUrl('/v1/voice/incoming-consent'),
+    method: 'POST',
+  });
+  gather.say(
     { language: 'ru-RU' },
-    'Внимание. Этот разговор записывается приложением Голос. Продолжая разговор, вы подтверждаете, что участники уведомлены о записи.',
+    'Этот звонок будет записываться. Чтобы согласиться на запись и продолжить, нажмите 1. Если вы не согласны, не нажимайте кнопку.',
   );
+  response.say({ language: 'ru-RU' }, 'Согласие на запись не получено. Вызов завершается.');
+  response.hangup();
+  return sendTwiML(res, response);
+});
+
+app.post('/v1/voice/incoming-consent', requireTwilioSignature, async (req, res) => {
+  const accepted = String(req.body.Digits || '') === '1';
+  const event = {
+    callSid: String(req.body.CallSid || ''),
+    party: 'incoming-caller',
+    accepted,
+    createdAt: new Date().toISOString(),
+  };
   try {
-    addRecordingDial(response, 'golos-user', 'client');
+    await fs.promises.mkdir(DATA_DIR, { recursive: true });
+    await fs.promises.appendFile(
+      path.join(DATA_DIR, 'recording-consents.jsonl'),
+      JSON.stringify(event) + '\n',
+      { mode: 0o600 },
+    );
+  } catch (error) {
+    console.error('Could not store incoming recording consent:', error);
+    return res.status(500).send('Could not store consent');
+  }
+
+  const response = new twilio.twiml.VoiceResponse();
+  if (!accepted) {
+    response.say({ language: 'ru-RU' }, 'Согласие на запись не получено. Вызов завершается.');
+    response.hangup();
+    return sendTwiML(res, response);
+  }
+
+  response.say({ language: 'ru-RU' }, 'Спасибо. Соединяем вас с пользователем приложения Голос.');
+  try {
+    addRecordingDial(response, 'golos-user', 'client', false);
     return sendTwiML(res, response);
   } catch (error) {
     const failure = new twilio.twiml.VoiceResponse();
