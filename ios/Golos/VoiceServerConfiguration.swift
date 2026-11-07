@@ -2,17 +2,12 @@ import Combine
 import Foundation
 import Security
 
-/// Stores the backend URL as a normal preference and the app API token in iOS Keychain.
+/// Stores the backend URL as a preference and the app API token in iOS Keychain.
 final class VoiceServerConfiguration: ObservableObject {
     static let shared = VoiceServerConfiguration()
 
-    @Published var serverURL: String {
-        didSet { UserDefaults.standard.set(serverURL, forKey: Self.serverURLKey); VoiceCallManager.shared.configurationDidChange() }
-    }
-
-    @Published var apiToken: String {
-        didSet { Keychain.save(apiToken, account: Self.apiTokenAccount); VoiceCallManager.shared.configurationDidChange() }
-    }
+    @Published private(set) var serverURL: String
+    @Published private(set) var apiToken: String
 
     fileprivate static let service = "com.blackministers.golos"
     private static let serverURLKey = "golos.voice.serverURL"
@@ -28,6 +23,16 @@ final class VoiceServerConfiguration: ObservableObject {
               url.scheme?.lowercased() == "https",
               url.host != nil else { return false }
         return !apiToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    func save(serverURL: String, apiToken: String) {
+        let normalizedURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let normalizedToken = apiToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.serverURL = normalizedURL
+        self.apiToken = normalizedToken
+        UserDefaults.standard.set(normalizedURL, forKey: Self.serverURLKey)
+        Keychain.save(normalizedToken, account: Self.apiTokenAccount)
+        VoiceCallManager.shared.configurationDidChange()
     }
 }
 
