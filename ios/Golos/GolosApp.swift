@@ -16,7 +16,7 @@ final class GolosAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        VoiceCallManager.shared.startPushRegistration()
+        VoicePushManager.shared.start()
         return true
     }
 }
