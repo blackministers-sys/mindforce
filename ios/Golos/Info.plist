@@ -24,6 +24,11 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Микрофон используется для записи встреч, заметок и аудио, которое вы хотите сохранить.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>voip</string>
+    </array>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UISupportedInterfaceOrientations</key>
