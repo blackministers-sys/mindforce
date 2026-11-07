@@ -24,6 +24,8 @@ final class VoiceCallManager: NSObject, ObservableObject {
     private var activeCallUUID: UUID?
     private var activeCallInvites: [UUID: CallInvite] = [:]
     private var userInitiatedDisconnect = false
+    private var activeCallWasIncoming = false
+    private var pendingPushDeviceToken: Data?
 
     private override init() {
         let configuration = CXProviderConfiguration(localizedName: "Голос")
@@ -83,10 +85,25 @@ final class VoiceCallManager: NSObject, ObservableObject {
     // MARK: VoIP push registration
 
     func credentialsUpdated(_ credentials: PKPushCredentials) {
+        pendingPushDeviceToken = credentials.token
+        registerPushDeviceTokenIfPossible()
+    }
+
+    func configurationDidChange() {
+        registerPushDeviceTokenIfPossible()
+    }
+
+    private func registerPushDeviceTokenIfPossible() {
+        guard let deviceToken = pendingPushDeviceToken,
+              VoiceServerConfiguration.shared.isConfigured else {
+            status = "Настройте телефонный сервер для включения входящих звонков"
+            return
+        }
+
         VoiceTokenService.shared.fetchAccessToken { [weak self] result in
             switch result {
             case .success(let token):
-                TwilioVoiceSDK.register(accessToken: token, deviceToken: credentials.token) { error in
+                TwilioVoiceSDK.register(accessToken: token, deviceToken: deviceToken) { error in
                     DispatchQueue.main.async {
                         if let error {
                             self?.errorMessage = "Не удалось зарегистрировать PushKit: \(error.localizedDescription)"
@@ -130,6 +147,7 @@ final class VoiceCallManager: NSObject, ObservableObject {
                 self.activeCallUUID = action.callUUID
                 self.isCallActive = true
                 self.isIncomingCall = false
+                self.activeCallWasIncoming = false
                 self.status = "Вызов номера \(destination)…"
                 action.fulfill()
             }
@@ -149,6 +167,7 @@ final class VoiceCallManager: NSObject, ObservableObject {
         activeCallInvites.removeValue(forKey: action.callUUID)
         isCallActive = true
         isIncomingCall = false
+        activeCallWasIncoming = true
         status = "Подключение входящего звонка…"
         action.fulfill()
     }
@@ -160,6 +179,7 @@ final class VoiceCallManager: NSObject, ObservableObject {
         isIncomingCall = false
         isMuted = false
         userInitiatedDisconnect = false
+        activeCallWasIncoming = false
         status = "Телефония готова"
     }
 }
@@ -195,11 +215,13 @@ extension VoiceCallManager: CXProviderDelegate {
     func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         if let invite = activeCallInvites.removeValue(forKey: action.callUUID) {
             invite.reject()
+            resetCallState()
         } else if let call = activeCall {
             userInitiatedDisconnect = true
             call.disconnect()
+        } else {
+            resetCallState()
         }
-        resetCallState()
         action.fulfill()
     }
 
@@ -255,7 +277,7 @@ extension VoiceCallManager: CallDelegate {
     func callDidConnect(call: Call) {
         status = "Разговор начался — запись выполняется на сервере"
         isCallActive = true
-        if let uuid = call.uuid {
+        if !activeCallWasIncoming, let uuid = call.uuid {
             provider.reportOutgoingCall(with: uuid, connectedAt: Date())
         }
     }
