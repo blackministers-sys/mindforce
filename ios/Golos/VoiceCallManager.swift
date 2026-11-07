@@ -290,11 +290,7 @@ extension VoiceCallManager: CXProviderDelegate {
 
 extension VoiceCallManager: NotificationDelegate {
     func callInviteReceived(callInvite: CallInvite) {
-        guard UserDefaults.standard.bool(forKey: "golos.recording.accepted") else {
-            callInvite.reject()
-            status = "Входящий звонок отклонён: сначала разрешите запись звонков в приложении."
-            return
-        }
+        let recordingAllowed = UserDefaults.standard.bool(forKey: "golos.recording.accepted")
         activeCallInvites[callInvite.uuid] = callInvite
         isIncomingCall = true
         let caller = (callInvite.from ?? "Входящий звонок").replacingOccurrences(of: "client:", with: "")
@@ -309,11 +305,21 @@ extension VoiceCallManager: NotificationDelegate {
         update.supportsUngrouping = false
         update.hasVideo = false
         provider.reportNewIncomingCall(with: callInvite.uuid, update: update) { [weak self] error in
+            guard let self else { return }
             if let error {
-                self?.errorMessage = "Не удалось показать входящий звонок: \(error.localizedDescription)"
-                self?.activeCallInvites.removeValue(forKey: callInvite.uuid)
-                self?.isIncomingCall = false
+                callInvite.reject()
+                self.errorMessage = "Не удалось показать входящий звонок: \(error.localizedDescription)"
+                self.activeCallInvites.removeValue(forKey: callInvite.uuid)
+                self.isIncomingCall = false
+                return
             }
+
+            guard !recordingAllowed else { return }
+            callInvite.reject()
+            self.activeCallInvites.removeValue(forKey: callInvite.uuid)
+            self.isIncomingCall = false
+            self.provider.reportCall(with: callInvite.uuid, endedAt: Date(), reason: .declinedElsewhere)
+            self.status = "Входящий звонок отклонён: сначала разрешите запись звонков в приложении."
         }
     }
 
