@@ -15,7 +15,7 @@ struct ContentView: View {
     @State private var serverURLDraft = VoiceServerConfiguration.shared.serverURL
     @State private var apiTokenDraft = ""
     @State private var phoneNumber = ""
-    @State private var hasAcknowledgedRecordingNotice = false
+    @AppStorage("golos.recording.accepted") private var hasAcknowledgedRecordingNotice = false
 
     var body: some View {
         NavigationStack {
@@ -96,7 +96,7 @@ struct ContentView: View {
             TextField("+31612345678", text: $phoneNumber)
                 .keyboardType(.phonePad)
                 .textFieldStyle(.roundedBorder)
-            Toggle("Я уведомлён о записи и проверил согласие собеседника", isOn: $hasAcknowledgedRecordingNotice)
+            Toggle("Разрешаю запись звонков через «Голос»", isOn: $hasAcknowledgedRecordingNotice)
                 .font(.footnote)
             Button {
                 voice.startCall(to: phoneNumber)
