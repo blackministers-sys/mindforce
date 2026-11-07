@@ -7,11 +7,11 @@ final class VoiceServerConfiguration: ObservableObject {
     static let shared = VoiceServerConfiguration()
 
     @Published var serverURL: String {
-        didSet { UserDefaults.standard.set(serverURL, forKey: Self.serverURLKey) }
+        didSet { UserDefaults.standard.set(serverURL, forKey: Self.serverURLKey); VoiceCallManager.shared.configurationDidChange() }
     }
 
     @Published var apiToken: String {
-        didSet { Keychain.save(apiToken, account: Self.apiTokenAccount) }
+        didSet { Keychain.save(apiToken, account: Self.apiTokenAccount); VoiceCallManager.shared.configurationDidChange() }
     }
 
     fileprivate static let service = "com.blackministers.golos"
