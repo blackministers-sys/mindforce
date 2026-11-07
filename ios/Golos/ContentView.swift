@@ -6,13 +6,15 @@ struct ContentView: View {
     @StateObject private var callMonitor = CallMonitor()
     @StateObject private var recorder = MeetingRecorder()
     @ObservedObject private var voice = VoiceCallManager.shared
-    @ObservedObject private var serverConfiguration = VoiceServerConfiguration.shared
+    @ObservedObject private var configuration = VoiceServerConfiguration.shared
 
     @State private var showingImporter = false
     @State private var importedFileName: String?
     @State private var importError: String?
+    @State private var serverURLDraft = VoiceServerConfiguration.shared.serverURL
+    @State private var apiTokenDraft = ""
     @State private var phoneNumber = ""
-    @State private var hasAcknowledgedConsent = false
+    @State private var hasAcknowledgedRecordingNotice = false
 
     var body: some View {
         NavigationStack {
@@ -40,24 +42,29 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Телефонный сервис", systemImage: "network")
                 .font(.headline)
-            Text(voice.status)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(voice.status.contains("готова") || voice.status.contains("подключ") ? .green : .secondary)
-            TextField("HTTPS-адрес сервера", text: $serverConfiguration.serverURL)
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(configuration.isConfigured ? Color.green : Color.orange)
+                    .frame(width: 8, height: 8)
+                Text(configuration.isConfigured ? "Настройки сохранены" : "Нужна настройка сервера")
+                    .font(.subheadline.weight(.medium))
+            }
+            TextField("HTTPS-адрес сервера", text: $serverURLDraft)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
-            SecureField("Персональный ключ доступа", text: $serverConfiguration.apiToken)
+            SecureField("Ключ доступа приложения", text: $apiTokenDraft)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
-            Button("Проверить подключение") {
-                voice.validateConfiguration()
+            Button("Сохранить настройки") {
+                configuration.save(serverURL: serverURLDraft, apiToken: apiTokenDraft)
+                apiTokenDraft = ""
             }
             .buttonStyle(.borderedProminent)
-            .disabled(!serverConfiguration.isConfigured)
-            Text("Секреты Twilio хранятся только на сервере. Здесь используется отдельный пользовательский ключ доступа.")
+            .disabled(serverURLDraft.isEmpty || apiTokenDraft.isEmpty)
+            Text(voice.status)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if let error = voice.errorMessage {
@@ -65,6 +72,9 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+            Text("Ключ хранится в Keychain iPhone. Секреты Twilio в приложении не используются.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .cardStyle()
     }
@@ -76,7 +86,7 @@ struct ContentView: View {
             TextField("+31612345678", text: $phoneNumber)
                 .keyboardType(.phonePad)
                 .textFieldStyle(.roundedBorder)
-            Toggle("Я уведомлён о записи и согласии собеседника", isOn: $hasAcknowledgedConsent)
+            Toggle("Я уведомлён о записи и проверил согласие собеседника", isOn: $hasAcknowledgedRecordingNotice)
                 .font(.footnote)
             Button {
                 voice.startCall(to: phoneNumber)
@@ -86,24 +96,31 @@ struct ContentView: View {
                     .padding(.vertical, 8)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(!hasAcknowledgedConsent || phoneNumber.isEmpty || !serverConfiguration.isConfigured || voice.isCallActive)
+            .disabled(!configuration.isConfigured || !hasAcknowledgedRecordingNotice || phoneNumber.isEmpty || voice.isCallActive)
             if voice.isCallActive {
                 HStack {
-                    Button(role: .destructive) {
-                        voice.endCall()
-                    } label: {
-                        Label("Завершить звонок", systemImage: "phone.down.fill")
-                    }
                     Button {
                         voice.toggleMute()
                     } label: {
-                        Label("Микрофон: " + (voice.isMuted ? "выключен" : "включён"), systemImage: voice.isMuted ? "mic.slash" : "mic")
+                        Label(voice.isMuted ? "Включить микрофон" : "Выключить микрофон",
+                              systemImage: voice.isMuted ? "mic.slash.fill" : "mic.fill")
+                            .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.bordered)
+                    Button(role: .destructive) {
+                        voice.endCall()
+                    } label: {
+                        Label("Завершить", systemImage: "phone.down.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
             }
             Text(voice.status)
                 .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text("Звонок проходит через телефонный шлюз «Голоса», а не через SIM-звонилку iPhone. Запись выполняется на стороне провайдера.")
+                .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .cardStyle()
@@ -170,7 +187,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Важно о звонках", systemImage: "info.circle")
                 .font(.headline)
-            Text("Обычные номера доступны через собственную телефонию внутри приложения. WhatsApp, Telegram и FaceTime не перехватываются. Перед записью необходимо уведомить участников и соблюдать местные требования к согласию.")
+            Text("Обычные номера доступны через собственный телефонный шлюз. WhatsApp, Telegram и FaceTime не перехватываются. Перед записью необходимо уведомить участников, получить требуемое согласие и соблюдать местные правила.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
