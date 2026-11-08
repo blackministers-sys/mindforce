@@ -226,6 +226,25 @@ struct ContentView: View {
                         }
                     }
                 }
+                DisclosureGroup("Сегменты и спикеры") {
+                    ForEach(record.segments) { segment in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(segment.speaker ?? "Спикер")
+                                    .font(.caption.weight(.semibold))
+                                Spacer()
+                                let seconds = max(0, Int(segment.start ?? 0))
+                                Text(String(format: "%02d:%02d", seconds / 60, seconds % 60))
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text(segment.text)
+                                .font(.footnote)
+                                .textSelection(.enabled)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
                 DisclosureGroup("Полная расшифровка") {
                     Text(record.transcript)
                         .font(.footnote)
@@ -261,13 +280,8 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                let query = aiLibraryQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-                let filtered = aiProcessor.recordings.filter { item in
-                    query.isEmpty
-                    || item.displayTitle.localizedCaseInsensitiveContains(query)
-                    || item.fileName.localizedCaseInsensitiveContains(query)
-                    || item.transcriptPreview.localizedCaseInsensitiveContains(query)
-                }
+                // The backend searches the full transcript, not only the short preview.
+                let filtered = aiProcessor.recordings
                 if filtered.isEmpty {
                     Text("Ничего не найдено")
                         .font(.caption)
