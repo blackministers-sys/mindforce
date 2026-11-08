@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const MAX_AUDIO_BYTES = 24 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 23 * 1024 * 1024;
 const MIME_BY_EXTENSION = {
   '.mp3': 'audio/mpeg',
   '.mp4': 'audio/mp4',
@@ -256,10 +256,20 @@ function createAIRouter({ dataDir }) {
         if (error.code === 'ENOENT') return [];
         throw error;
       });
+      const query = typeof _req.query.q === 'string'
+        ? _req.query.q.trim().normalize('NFKC').toLocaleLowerCase('ru-RU').slice(0, 200)
+        : '';
       const records = [];
       for (const name of names.filter((item) => item.endsWith('.json'))) {
         try {
           const record = JSON.parse(await fs.promises.readFile(path.join(recordsDir, name), 'utf8'));
+          const searchable = [
+            record.fileName,
+            record.summary?.title,
+            record.summary?.summary,
+            record.transcript,
+          ].filter(Boolean).join('\n').normalize('NFKC').toLocaleLowerCase('ru-RU');
+          if (query && !searchable.includes(query)) continue;
           records.push({
             id: record.id,
             fileName: record.fileName,
