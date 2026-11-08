@@ -127,6 +127,9 @@ final class AIRecordingProcessor: ObservableObject {
     @Published private(set) var status = "Записи можно расшифровывать и превращать в конспекты"
     @Published private(set) var latestRecord: AIRecordingRecord?
     @Published private(set) var recordings: [AIRecordingLibraryItem] = []
+    @Published private(set) var latestAudioURL: URL?
+    @Published private(set) var latestAudioRecordID: String?
+    @Published private(set) var isDownloadingAudio = false
     @Published private(set) var errorMessage: String?
 
     func refreshLibrary(query: String = "") {
@@ -184,6 +187,54 @@ final class AIRecordingProcessor: ObservableObject {
                     self.errorMessage = nil
                 } catch {
                     self.errorMessage = "Не удалось прочитать запись: \(error.localizedDescription)"
+                }
+            }
+        }.resume()
+    }
+
+    func downloadRecordingAudio(id: String, fileName: String) {
+        let configuration = VoiceServerConfiguration.shared
+        guard configuration.isConfigured, let baseURL = URL(string: configuration.serverURL) else { return }
+        guard !isDownloadingAudio else { return }
+
+        var request = URLRequest(
+            url: baseURL.appendingPathComponent("v1/ai/recordings").appendingPathComponent(id).appendingPathComponent("audio")
+        )
+        request.httpMethod = "GET"
+        request.timeoutInterval = 600
+        request.setValue("Bearer \(configuration.apiToken)", forHTTPHeaderField: "Authorization")
+        isDownloadingAudio = true
+        errorMessage = nil
+
+        URLSession.shared.downloadTask(with: request) { [weak self] temporaryURL, response, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isDownloadingAudio = false
+
+                if let error {
+                    self.errorMessage = "Не удалось скачать аудио: \(error.localizedDescription)"
+                    return
+                }
+                guard let http = response as? HTTPURLResponse,
+                      (200..<300).contains(http.statusCode),
+                      let temporaryURL else {
+                    self.errorMessage = "Сервер не отдал оригинальный аудиофайл"
+                    return
+                }
+
+                let fileExtension = URL(fileURLWithPath: fileName).pathExtension
+                    .lowercased()
+                    .filter { $0.isASCII && ($0.isLetter || $0.isNumber) }
+                let destination = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(id + (fileExtension.isEmpty ? ".audio" : "." + fileExtension))
+                do {
+                    try? FileManager.default.removeItem(at: destination)
+                    try FileManager.default.moveItem(at: temporaryURL, to: destination)
+                    self.latestAudioURL = destination
+                    self.latestAudioRecordID = id
+                    self.status = "Оригинальное аудио скачано"
+                } catch {
+                    self.errorMessage = "Не удалось сохранить аудио: \(error.localizedDescription)"
                 }
             }
         }.resume()
