@@ -38,7 +38,7 @@ struct ContentView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Голос")
-            .onAppear { aiProcessor.refreshLibrary() }
+            .onAppear { aiProcessor.refreshLibrary(query: aiLibraryQuery) }
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
                 importAudio(result)
             }
@@ -233,7 +233,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            Text("Аудио отправляется на сервер для обработки. Ключ OpenAI хранится только на сервере.")
+            Text("Аудио передаётся на сервер и в OpenAI для распознавания и конспекта. Ключ API хранится только на сервере.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -255,6 +255,7 @@ struct ContentView: View {
             }
             TextField("Поиск по названию и тексту", text: $aiLibraryQuery)
                 .textFieldStyle(.roundedBorder)
+                .onSubmit { aiProcessor.refreshLibrary(query: aiLibraryQuery) }
             if aiProcessor.recordings.isEmpty {
                 Text("После обработки записей они появятся здесь.")
                     .font(.caption)
