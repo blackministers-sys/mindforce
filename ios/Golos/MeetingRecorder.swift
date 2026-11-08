@@ -259,6 +259,10 @@ final class AIRecordingProcessor: ObservableObject {
                     return
                 }
                 if self.latestRecord?.id == id { self.latestRecord = nil }
+                if self.latestAudioRecordID == id {
+                    self.latestAudioURL = nil
+                    self.latestAudioRecordID = nil
+                }
                 self.recordings.removeAll { $0.id == id }
                 self.status = "Запись удалена"
             }
