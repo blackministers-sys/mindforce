@@ -194,6 +194,32 @@ struct ContentView: View {
             }
             if let record = aiProcessor.latestRecord {
                 Divider()
+                HStack(spacing: 12) {
+                    Button {
+                        aiProcessor.downloadRecordingAudio(id: record.id, fileName: record.fileName)
+                    } label: {
+                        if aiProcessor.isDownloadingAudio {
+                            ProgressView()
+                        } else {
+                            Label("Скачать аудио", systemImage: "arrow.down.circle")
+                        }
+                    }
+                    .disabled(aiProcessor.isDownloadingAudio)
+                    if aiProcessor.latestAudioRecordID == record.id, let audioURL = aiProcessor.latestAudioURL {
+                        ShareLink(item: audioURL) {
+                            Label("Поделиться аудио", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                    ShareLink(item: record.transcript) {
+                        Label("Экспорт текста", systemImage: "doc.on.doc")
+                    }
+                }
+                if let summary = record.summary {
+                    ShareLink(item: summary.summary) {
+                        Label("Поделиться конспектом", systemImage: "square.and.arrow.up")
+                    }
+                    .font(.caption)
+                }
                 if let summary = record.summary {
                     Text(summary.title)
                         .font(.subheadline.weight(.semibold))
