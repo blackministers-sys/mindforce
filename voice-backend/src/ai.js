@@ -142,9 +142,10 @@ async function summarizeTranscript(transcription) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_SUMMARY_MODEL || 'gpt-5.6',
+      model: process.env.OPENAI_SUMMARY_MODEL || 'gpt-6-luna',
       store: false,
       max_output_tokens: 1800,
+      reasoning: { effort: 'none' },
       instructions: [
         'Ты — ассистент для анализа встреч и аудиозаписей. Пиши на русском языке.',
         'Составь точный конспект только по переданному тексту. Не выдумывай участников, решения, сроки и поручения.',
