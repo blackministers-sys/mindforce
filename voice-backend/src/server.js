@@ -11,6 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Readable } = require('node:stream');
 const { isE164, isAllowedDestination } = require('./phone');
+const { createAIRouter } = require('./ai');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -110,6 +111,9 @@ function addRecordingDial(response, destination, destinationType, requireDestina
 }
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'golos-voice-backend' }));
+
+// All AI audio endpoints use the same private app token as the telephony API.
+app.use('/v1/ai', requireAppToken, createAIRouter({ dataDir: DATA_DIR }));
 
 app.post('/v1/voice/token', tokenLimiter, requireAppToken, (req, res) => {
   try {
