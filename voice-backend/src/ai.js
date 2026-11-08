@@ -356,5 +356,7 @@ module.exports = {
   normalizeTranscription,
   extractOutputText,
   transcriptionRequestOptions,
+  transcribeAudio,
+  summarizeTranscript,
   createAIRouter,
 };
