@@ -129,10 +129,16 @@ final class AIRecordingProcessor: ObservableObject {
     @Published private(set) var recordings: [AIRecordingLibraryItem] = []
     @Published private(set) var errorMessage: String?
 
-    func refreshLibrary() {
+    func refreshLibrary(query: String = "") {
         let configuration = VoiceServerConfiguration.shared
         guard configuration.isConfigured, let baseURL = URL(string: configuration.serverURL) else { return }
-        var request = URLRequest(url: baseURL.appendingPathComponent("v1/ai/recordings"))
+        var components = URLComponents(url: baseURL.appendingPathComponent("v1/ai/recordings"), resolvingAgainstBaseURL: false)
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedQuery.isEmpty {
+            components?.queryItems = [URLQueryItem(name: "q", value: trimmedQuery)]
+        }
+        guard let url = components?.url else { return }
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(configuration.apiToken)", forHTTPHeaderField: "Authorization")
 
@@ -243,8 +249,8 @@ final class AIRecordingProcessor: ObservableObject {
             status = "Аудиофайл пустой"
             return
         }
-        guard audioData.count <= 24 * 1024 * 1024 else {
-            status = "Файл больше 24 МБ. Сожмите запись или разделите её на части"
+        guard audioData.count <= 23 * 1024 * 1024 else {
+            status = "Файл больше 23 МБ. Сожмите запись или разделите её на части"
             return
         }
 
