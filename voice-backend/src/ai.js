@@ -113,7 +113,6 @@ async function transcribeAudio(buffer, fileName, mimeType) {
   form.append('file', blob, fileName);
   form.append('model', process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-transcribe-diarize');
   form.append('response_format', 'diarized_json');
-  form.append('chunking_strategy', 'auto');
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
