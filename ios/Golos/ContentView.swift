@@ -8,6 +8,7 @@ struct ContentView: View {
     @ObservedObject private var voice = VoiceCallManager.shared
     @ObservedObject private var configuration = VoiceServerConfiguration.shared
     @StateObject private var recordingsStore = VoiceRecordingsStore()
+    @StateObject private var aiProcessor = AIRecordingProcessor()
 
     @State private var showingImporter = false
     @State private var importedFileName: String?
@@ -24,6 +25,7 @@ struct ContentView: View {
                     voiceSettings
                     phoneDialer
                     recordingsLibrary
+                    aiResultCard
                     meetingRecorder
                     importCard
                     callMonitorCard
@@ -158,12 +160,76 @@ struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(recordingsStore.recordings) { recording in
-                VoiceRecordingRow(recording: recording, store: recordingsStore)
+                VoiceRecordingRow(recording: recording, store: recordingsStore, aiProcessor: aiProcessor)
                 if recording.id != recordingsStore.recordings.last?.id {
                     Divider()
                 }
             }
             Text("Аудио загружается по защищённому соединению из телефонного backend.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .cardStyle()
+    }
+
+    private var aiResultCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Расшифровка и AI-конспект", systemImage: "text.quote")
+                .font(.headline)
+            HStack(spacing: 8) {
+                if aiProcessor.isProcessing { ProgressView() }
+                Text(aiProcessor.status)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let error = aiProcessor.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+            if let record = aiProcessor.latestRecord {
+                Divider()
+                if let summary = record.summary {
+                    Text(summary.title)
+                        .font(.subheadline.weight(.semibold))
+                    Text(summary.summary)
+                        .font(.subheadline)
+                        .textSelection(.enabled)
+                    if !summary.keyPoints.isEmpty {
+                        Text("Ключевые тезисы").font(.subheadline.weight(.semibold))
+                        ForEach(Array(summary.keyPoints.enumerated()), id: \.offset) { _, item in
+                            Text("• " + item).font(.footnote)
+                        }
+                    }
+                    if !summary.decisions.isEmpty {
+                        Text("Решения").font(.subheadline.weight(.semibold))
+                        ForEach(Array(summary.decisions.enumerated()), id: \.offset) { _, item in
+                            Text("• " + item).font(.footnote)
+                        }
+                    }
+                    if !summary.tasks.isEmpty {
+                        Text("Задачи").font(.subheadline.weight(.semibold))
+                        ForEach(summary.tasks) { item in
+                            let details = [item.owner, item.dueDate].compactMap { $0 }.filter { !$0.isEmpty }
+                            Text("• " + item.task + (details.isEmpty ? "" : " — " + details.joined(separator: ", ")))
+                                .font(.footnote)
+                        }
+                    }
+                    if !summary.openQuestions.isEmpty {
+                        Text("Открытые вопросы").font(.subheadline.weight(.semibold))
+                        ForEach(Array(summary.openQuestions.enumerated()), id: \.offset) { _, item in
+                            Text("• " + item).font(.footnote)
+                        }
+                    }
+                }
+                DisclosureGroup("Полная расшифровка") {
+                    Text(record.transcript)
+                        .font(.footnote)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            Text("Аудио отправляется на сервер для обработки. Ключ OpenAI хранится только на сервере.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -178,7 +244,12 @@ struct ContentView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Button {
-                recorder.isRecording ? recorder.stop() : recorder.start()
+                if recorder.isRecording {
+                    recorder.stop()
+                    if let url = recorder.latestFileURL { aiProcessor.process(fileURL: url) }
+                } else {
+                    recorder.start()
+                }
             } label: {
                 Label(recorder.isRecording ? "Остановить запись" : "Начать запись",
                       systemImage: recorder.isRecording ? "stop.circle.fill" : "record.circle")
@@ -245,15 +316,18 @@ struct ContentView: View {
             defer { if didAccess { source.stopAccessingSecurityScopedResource() } }
             let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let destination = directory.appendingPathComponent(source.lastPathComponent)
+            let importedURL: URL
             if FileManager.default.fileExists(atPath: destination.path) {
                 let renamed = directory.appendingPathComponent(UUID().uuidString + "-" + source.lastPathComponent)
                 try FileManager.default.copyItem(at: source, to: renamed)
-                importedFileName = renamed.lastPathComponent
+                importedURL = renamed
             } else {
                 try FileManager.default.copyItem(at: source, to: destination)
-                importedFileName = destination.lastPathComponent
+                importedURL = destination
             }
+            importedFileName = importedURL.lastPathComponent
             importError = nil
+            aiProcessor.process(fileURL: importedURL)
         } catch {
             importError = "Не удалось импортировать файл: \(error.localizedDescription)"
         }
@@ -264,6 +338,7 @@ struct ContentView: View {
 private struct VoiceRecordingRow: View {
     let recording: VoiceRecording
     @ObservedObject var store: VoiceRecordingsStore
+    @ObservedObject var aiProcessor: AIRecordingProcessor
     @State private var isDownloading = false
     @State private var downloadedURL: URL?
     @State private var downloadError: String?
@@ -292,7 +367,9 @@ private struct VoiceRecordingRow: View {
                         store.download(recording) { result in
                             isDownloading = false
                             switch result {
-                            case .success(let url): downloadedURL = url
+                            case .success(let url):
+                                downloadedURL = url
+                                aiProcessor.process(fileURL: url)
                             case .failure(let error): downloadError = error.localizedDescription
                             }
                         }
@@ -300,7 +377,7 @@ private struct VoiceRecordingRow: View {
                         if isDownloading {
                             ProgressView()
                         } else {
-                            Label("Скачать", systemImage: "arrow.down.circle")
+                            Label("Скачать и расшифровать", systemImage: "waveform")
                         }
                     }
                     .disabled(isDownloading)
