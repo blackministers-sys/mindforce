@@ -20,13 +20,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build iOS Simulator app
         run: |
-          xcodebuild \
-            -project ios/Golos.xcodeproj \
-            -scheme Golos \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            ARCHS=arm64 \
-            ONLY_ACTIVE_ARCH=YES \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+          for CONFIGURATION in Debug Release; do
+            echo "Building simulator configuration: $CONFIGURATION"
+            xcodebuild \
+              -project ios/Golos.xcodeproj \
+              -scheme Golos \
+              -sdk iphonesimulator \
+              -configuration "$CONFIGURATION" \
+              -destination 'generic/platform=iOS Simulator' \
+              ARCHS=arm64 \
+              ONLY_ACTIVE_ARCH=YES \
+              CODE_SIGNING_ALLOWED=NO \
+              build
+          done
