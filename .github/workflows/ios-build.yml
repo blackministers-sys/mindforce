@@ -6,6 +6,7 @@ on:
     paths:
       - "ios/**"
       - ".github/workflows/ios-build.yml"
+      - ".github/workflows/ios-testflight.yml"
   pull_request:
     branches: [main]
     paths:
