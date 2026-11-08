@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var aiLibraryQuery = ""
     @State private var pendingAIRecordingDeletion: AIRecordingLibraryItem?
     @AppStorage("golos.recording.accepted") private var hasAcknowledgedRecordingNotice = false
+    @AppStorage("golos.meeting.recording.acknowledged") private var hasAcknowledgedMeetingRecordingNotice = false
 
     var body: some View {
         NavigationStack {
@@ -347,6 +348,8 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Запись встреч и заметок", systemImage: "waveform")
                 .font(.headline)
+            Toggle("Я уведомил участников и получил требуемое согласие на запись", isOn: $hasAcknowledgedMeetingRecordingNotice)
+                .font(.footnote)
             Text(recorder.status)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -354,7 +357,7 @@ struct ContentView: View {
                 if recorder.isRecording {
                     recorder.stop()
                     if let url = recorder.latestFileURL { aiProcessor.process(fileURL: url) }
-                } else {
+                } else if hasAcknowledgedMeetingRecordingNotice {
                     recorder.start()
                 }
             } label: {
@@ -366,6 +369,10 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .tint(recorder.isRecording ? .red : .mint)
             .foregroundStyle(recorder.isRecording ? .white : .black)
+            .disabled(!recorder.isRecording && !hasAcknowledgedMeetingRecordingNotice)
+            Text("До начала записи получите согласие, требуемое законодательством для всех участников встречи.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
         .cardStyle()
     }
