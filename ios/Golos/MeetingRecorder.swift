@@ -126,7 +126,87 @@ final class AIRecordingProcessor: ObservableObject {
     @Published private(set) var isProcessing = false
     @Published private(set) var status = "Записи можно расшифровывать и превращать в конспекты"
     @Published private(set) var latestRecord: AIRecordingRecord?
+    @Published private(set) var recordings: [AIRecordingLibraryItem] = []
     @Published private(set) var errorMessage: String?
+
+    func refreshLibrary() {
+        let configuration = VoiceServerConfiguration.shared
+        guard configuration.isConfigured, let baseURL = URL(string: configuration.serverURL) else { return }
+        var request = URLRequest(url: baseURL.appendingPathComponent("v1/ai/recordings"))
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(configuration.apiToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if let error {
+                    self.errorMessage = error.localizedDescription
+                    return
+                }
+                guard let http = response as? HTTPURLResponse, let data, (200..<300).contains(http.statusCode) else {
+                    return
+                }
+                do {
+                    self.recordings = try JSONDecoder().decode(AIRecordingLibraryEnvelope.self, from: data).recordings
+                } catch {
+                    self.errorMessage = "Не удалось прочитать библиотеку: \(error.localizedDescription)"
+                }
+            }
+        }.resume()
+    }
+
+    func openRecording(id: String) {
+        let configuration = VoiceServerConfiguration.shared
+        guard configuration.isConfigured, let baseURL = URL(string: configuration.serverURL) else { return }
+        var request = URLRequest(url: baseURL.appendingPathComponent("v1/ai/recordings").appendingPathComponent(id))
+        request.setValue("Bearer \(configuration.apiToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if let error {
+                    self.errorMessage = error.localizedDescription
+                    return
+                }
+                guard let http = response as? HTTPURLResponse, let data, (200..<300).contains(http.statusCode) else {
+                    self.errorMessage = "Не удалось открыть запись"
+                    return
+                }
+                do {
+                    self.latestRecord = try JSONDecoder().decode(AIRecordingEnvelope.self, from: data).recording
+                    self.status = "Запись открыта из библиотеки"
+                    self.errorMessage = nil
+                } catch {
+                    self.errorMessage = "Не удалось прочитать запись: \(error.localizedDescription)"
+                }
+            }
+        }.resume()
+    }
+
+    func deleteRecording(id: String) {
+        let configuration = VoiceServerConfiguration.shared
+        guard configuration.isConfigured, let baseURL = URL(string: configuration.serverURL) else { return }
+        var request = URLRequest(url: baseURL.appendingPathComponent("v1/ai/recordings").appendingPathComponent(id))
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(configuration.apiToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { [weak self] _, response, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if let error {
+                    self.errorMessage = error.localizedDescription
+                    return
+                }
+                guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                    self.errorMessage = "Не удалось удалить запись"
+                    return
+                }
+                if self.latestRecord?.id == id { self.latestRecord = nil }
+                self.recordings.removeAll { $0.id == id }
+                self.status = "Запись удалена"
+            }
+        }.resume()
+    }
 
     func process(fileURL: URL) {
         let configuration = VoiceServerConfiguration.shared
@@ -205,6 +285,7 @@ final class AIRecordingProcessor: ObservableObject {
                 do {
                     let envelope = try JSONDecoder().decode(AIRecordingEnvelope.self, from: data)
                     self.latestRecord = envelope.recording
+                    self.refreshLibrary()
                     if let warning = envelope.recording.summaryWarning {
                         self.status = "Расшифровка готова; конспект требует повторной обработки"
                         self.errorMessage = warning
@@ -219,3 +300,30 @@ final class AIRecordingProcessor: ObservableObject {
         }.resume()
     }
 }
+
+
+struct AIRecordingLibraryItem: Decodable, Identifiable {
+    let id: String
+    let fileName: String
+    let createdAt: String
+    let fileSize: Int
+    let summary: AIRecordingSummary?
+    let summaryWarning: String?
+    let transcriptPreview: String
+
+    var displayTitle: String {
+        let title = summary?.title.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return title.isEmpty ? fileName : title
+    }
+
+    var dateLabel: String {
+        let formatter = ISO8601DateFormatter()
+        guard let date = formatter.date(from: createdAt) else { return createdAt }
+        return date.formatted(date: .abbreviated, time: .shortened)
+    }
+}
+
+private struct AIRecordingLibraryEnvelope: Decodable {
+    let recordings: [AIRecordingLibraryItem]
+}
+
