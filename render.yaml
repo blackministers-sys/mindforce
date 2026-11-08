@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: golos-voice-backend
+    runtime: node
+    plan: starter
+    region: frankfurt
+    rootDir: voice-backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    disk:
+      name: golos-voice-data
+      mountPath: /var/data
+      sizeGB: 5
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: GOLOS_APP_API_TOKEN
+        generateValue: true
+      - key: ALLOWED_DIAL_PREFIXES
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_API_KEY_SID
+        sync: false
+      - key: TWILIO_API_SECRET
+        sync: false
+      - key: TWILIO_APP_SID
+        sync: false
+      - key: TWILIO_CALLER_ID
+        sync: false
+      - key: TWILIO_PUSH_CREDENTIAL_SID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_TRANSCRIPTION_MODEL
+        value: gpt-4o-transcribe-diarize
+      - key: OPENAI_SUMMARY_MODEL
+        value: gpt-5.6
