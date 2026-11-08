@@ -100,6 +100,13 @@ async function readOpenAIResponse(response) {
   return data;
 }
 
+function transcriptionRequestOptions(model) {
+  if (model === 'gpt-4o-transcribe-diarize') {
+    return { responseFormat: 'diarized_json', chunkingStrategy: 'auto' };
+  }
+  return { responseFormat: 'json', chunkingStrategy: null };
+}
+
 async function transcribeAudio(buffer, fileName, mimeType) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -111,8 +118,11 @@ async function transcribeAudio(buffer, fileName, mimeType) {
   const form = new FormData();
   const blob = new Blob([Uint8Array.from(buffer)], { type: mimeType });
   form.append('file', blob, fileName);
-  form.append('model', process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-transcribe-diarize');
-  form.append('response_format', 'diarized_json');
+  const model = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-transcribe-diarize';
+  const options = transcriptionRequestOptions(model);
+  form.append('model', model);
+  form.append('response_format', options.responseFormat);
+  if (options.chunkingStrategy) form.append('chunking_strategy', options.chunkingStrategy);
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
@@ -344,5 +354,6 @@ module.exports = {
   audioMimeType,
   normalizeTranscription,
   extractOutputText,
+  transcriptionRequestOptions,
   createAIRouter,
 };
