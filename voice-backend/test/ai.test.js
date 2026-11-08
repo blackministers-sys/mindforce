@@ -8,6 +8,7 @@ const {
   audioMimeType,
   normalizeTranscription,
   extractOutputText,
+  transcriptionRequestOptions,
 } = require('../src/ai');
 
 test('sanitizes incoming audio file names and blocks path traversal', () => {
@@ -48,4 +49,18 @@ test('rejects empty transcription results and extracts Responses API text', () =
   assert.throws(() => normalizeTranscription({ segments: [] }), /пустую расшифровку/);
   assert.equal(extractOutputText({ output: [{ type: 'message', content: [{ type: 'output_text', text: 'Конспект' }] }] }), 'Конспект');
   assert.equal(MAX_AUDIO_BYTES, 23 * 1024 * 1024);
+});
+
+test('uses diarized JSON and automatic chunking for long multi-speaker recordings', () => {
+  assert.deepEqual(transcriptionRequestOptions('gpt-4o-transcribe-diarize'), {
+    responseFormat: 'diarized_json',
+    chunkingStrategy: 'auto',
+  });
+});
+
+test('supports the current transcription model without diarization metadata', () => {
+  assert.deepEqual(transcriptionRequestOptions('gpt-transcribe'), {
+    responseFormat: 'json',
+    chunkingStrategy: null,
+  });
 });
