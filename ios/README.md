@@ -31,7 +31,7 @@
 ## Что требуется для фактической работы AI и звонков
 
 1. Создать Render backend из `render.yaml` в корне репозитория. Blueprint использует платный план Starter и постоянный диск 5 ГБ; публикацию нужно вручную подтвердить в Render.
-2. Добавить `OPENAI_API_KEY` и конфигурацию Twilio в секреты/переменные Render. В Blueprint `GOLOS_APP_API_TOKEN` генерируется автоматически. Хранить ключи только на сервере, не в приложении, GitHub или чате.
+2. Добавить `OPENAI_API_KEY` и конфигурацию Twilio в секреты/переменные Render. Blueprint запрашивает `GOLOS_APP_API_TOKEN`: создай длинный случайный токен (не менее 32 байт), задай его в Render и введи то же значение в защищённые настройки приложения. Хранить ключи только на сервере, не в приложении, GitHub или чате.
 3. Настроить исходящие/входящие Twilio webhooks и разрешённые E.164-префиксы.
 
 ## Что требуется для реальных звонков
@@ -62,8 +62,28 @@
 
 - Текущая версия: `0.3.0` (build `3`), Bundle ID: `com.blackministers.golos`.
 - Подпись больше не отключена на уровне Xcode target. Debug использует APNs `development`, Release — отдельный `GolosRelease.entitlements` с APNs `production`.
-- Для подписи в Xcode необходимо выбрать Apple Developer Team и настроить provisioning profile/App ID. TestFlight требует действительного Apple Developer Program аккаунта и App Store Connect приложения/API credentials.
+- Для подписи Release необходимы Apple Developer Team, App ID с Push Notifications и App Store provisioning profile с `aps-environment=production`.
+- В репозитории добавлен workflow `.github/workflows/ios-testflight.yml`. Он архивирует Release, подписывает IPA, отправляет сборку в TestFlight и прикладывает IPA как GitHub Actions artifact. Workflow запускается вручную через Actions → Build and upload Golos to TestFlight → Run workflow.
+- Workflow использует GitHub Actions Secrets: `APPLE_TEAM_ID`, `IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64`, `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD`, `IOS_APP_STORE_PROFILE_BASE64`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_PRIVATE_KEY_BASE64`.
+- Для создания этих секретов нужен сертификат Apple Distribution в `.p12`, App Store provisioning profile для `com.blackministers.golos`, а также Team API Key App Store Connect с правом загрузки сборок. Файлы кодируются Base64 и добавляются только в GitHub → Settings → Secrets and variables → Actions; не отправляй их в чат и не коммить в репозиторий.
+- До первого запуска создай карточку приложения в App Store Connect с Bundle ID `com.blackministers.golos`. Build number в workflow автоматически увеличивается относительно текущего 3.
 
+## Настройка Release/TestFlight
+
+1. В Apple Developer Account создай explicit App ID `com.blackministers.golos` и включи Push Notifications.
+2. Создай Apple Distribution certificate и App Store provisioning profile с production APNs entitlement.
+3. Экспортируй сертификат как `.p12` с паролем. Получи Base64 для `.p12` и `.mobileprovision`.
+4. В App Store Connect создай Team API Key, скачай приватный `.p8` (однократно), сохрани Key ID и Issuer ID. Создай карточку приложения с точным Bundle ID.
+5. Добавь семь переменных GitHub Actions Secrets, перечисленных выше. Все секреты остаются в GitHub и не попадают в исходники.
+6. Запусти workflow вручную из вкладки Actions. После успешной загрузки дождись обработки сборки Apple и включи TestFlight-доступ для тестера.
+
+## Настройка Render
+
+1. Подключи репозиторий к Render и создай Blueprint из `render.yaml` на ветке `voice-ios-native`.
+2. При создании сервиса задай `GOLOS_APP_API_TOKEN` — длинный случайный секрет — и те же серверные credentials OpenAI/Twilio в Render Environment.
+3. Используй постоянный диск `/var/data` для `DATA_DIR`; не меняй его путь без миграции существующих записей.
+4. После deploy проверь `https://<домен>/health`, затем введи домен и тот же app token в «Голос» → «Сохранить и проверить».
+5. В Twilio Console пропиши Voice URL `https://<домен>/v1/voice/twiml` в TwiML Application и Incoming webhook `https://<домен>/v1/voice/incoming` на номере. `PUBLIC_BASE_URL` автоматически строится из `RENDER_EXTERNAL_HOSTNAME`.
 ## Следующий этап
 
 1. Развернуть backend через Render и заполнить серверные секреты.
