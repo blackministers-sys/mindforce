@@ -20,7 +20,7 @@ services:
       - key: TRUST_PROXY_HOPS
         value: "1"
       - key: GOLOS_APP_API_TOKEN
-        generateValue: true
+        sync: false
       - key: ALLOWED_DIAL_PREFIXES
         sync: false
       - key: TWILIO_ACCOUNT_SID
