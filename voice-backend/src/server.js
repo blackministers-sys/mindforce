@@ -15,7 +15,7 @@ const { createAIRouter } = require('./ai');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || (process.env.RENDER_EXTERNAL_HOSTNAME ? 'https://' + process.env.RENDER_EXTERNAL_HOSTNAME : '')).replace(/\/$/, '');
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const RECORDING_EVENTS_FILE = path.join(DATA_DIR, 'recording-events.jsonl');
 
