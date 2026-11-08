@@ -303,7 +303,9 @@ struct ContentView: View {
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { aiProcessor.refreshLibrary(query: aiLibraryQuery) }
             if aiProcessor.recordings.isEmpty {
-                Text("После обработки записей они появятся здесь.")
+                Text(aiLibraryQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                     ? "После обработки записей они появятся здесь."
+                     : "По этому запросу ничего не найдено.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
