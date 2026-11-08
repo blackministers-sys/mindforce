@@ -16,6 +16,8 @@ struct ContentView: View {
     @State private var serverURLDraft = VoiceServerConfiguration.shared.serverURL
     @State private var apiTokenDraft = ""
     @State private var phoneNumber = ""
+    @State private var aiLibraryQuery = ""
+    @State private var pendingAIRecordingDeletion: AIRecordingLibraryItem?
     @AppStorage("golos.recording.accepted") private var hasAcknowledgedRecordingNotice = false
 
     var body: some View {
@@ -26,6 +28,7 @@ struct ContentView: View {
                     phoneDialer
                     recordingsLibrary
                     aiResultCard
+                    aiLibraryCard
                     meetingRecorder
                     importCard
                     callMonitorCard
@@ -35,6 +38,7 @@ struct ContentView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Голос")
+            .onAppear { aiProcessor.refreshLibrary() }
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
                 importAudio(result)
             }
@@ -234,6 +238,94 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
         }
         .cardStyle()
+    }
+
+    private var aiLibraryCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Библиотека расшифровок", systemImage: "books.vertical")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    aiProcessor.refreshLibrary()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .accessibilityLabel("Обновить библиотеку расшифровок")
+            }
+            TextField("Поиск по названию и тексту", text: $aiLibraryQuery)
+                .textFieldStyle(.roundedBorder)
+            if aiProcessor.recordings.isEmpty {
+                Text("После обработки записей они появятся здесь.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                let query = aiLibraryQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+                let filtered = aiProcessor.recordings.filter { item in
+                    query.isEmpty
+                    || item.displayTitle.localizedCaseInsensitiveContains(query)
+                    || item.fileName.localizedCaseInsensitiveContains(query)
+                    || item.transcriptPreview.localizedCaseInsensitiveContains(query)
+                }
+                if filtered.isEmpty {
+                    Text("Ничего не найдено")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(filtered) { item in
+                        HStack(alignment: .top, spacing: 8) {
+                            Button {
+                                aiProcessor.openRecording(id: item.id)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.displayTitle)
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(2)
+                                    Text(item.dateLabel + " · " + ByteCountFormatter.string(fromByteCount: Int64(item.fileSize), countStyle: .file))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    Text(item.transcriptPreview)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                            Button(role: .destructive) {
+                                pendingAIRecordingDeletion = item
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.subheadline)
+                            }
+                            .accessibilityLabel("Удалить запись")
+                        }
+                        .padding(.vertical, 5)
+                        Divider()
+                    }
+                }
+            }
+        }
+        .cardStyle()
+        .confirmationDialog(
+            "Удалить запись «\(pendingAIRecordingDeletion?.displayTitle ?? "")»?",
+            isPresented: Binding(
+                get: { pendingAIRecordingDeletion != nil },
+                set: { if !$0 { pendingAIRecordingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Удалить запись и аудио", role: .destructive) {
+                if let item = pendingAIRecordingDeletion {
+                    aiProcessor.deleteRecording(id: item.id)
+                }
+                pendingAIRecordingDeletion = nil
+            }
+            Button("Отмена", role: .cancel) {
+                pendingAIRecordingDeletion = nil
+            }
+        }
     }
 
     private var meetingRecorder: some View {
