@@ -63,7 +63,7 @@
 - Текущая версия: `0.3.0` (build `3`), Bundle ID: `com.blackministers.golos`.
 - Подпись больше не отключена на уровне Xcode target. Debug использует APNs `development`, Release — отдельный `GolosRelease.entitlements` с APNs `production`.
 - Для подписи Release необходимы Apple Developer Team, App ID с Push Notifications и App Store provisioning profile с `aps-environment=production`.
-- В репозитории добавлен workflow `.github/workflows/ios-testflight.yml`. Он архивирует Release, подписывает IPA, отправляет сборку в TestFlight и прикладывает IPA как GitHub Actions artifact. Workflow запускается вручную через Actions → Build and upload Golos to TestFlight → Run workflow.
+- В репозитории добавлен workflow `.github/workflows/ios-testflight.yml`. Он архивирует Release, подписывает IPA, отправляет сборку в TestFlight и прикладывает IPA как GitHub Actions artifact. Публикация запускается автоматически при push в `voice-ios-native` с изменениями `ios/**`, только если включена переменная `ENABLE_TESTFLIGHT=true`.
 - Workflow использует GitHub Actions Secrets: `APPLE_TEAM_ID`, `IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64`, `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD`, `IOS_APP_STORE_PROFILE_BASE64`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_PRIVATE_KEY_BASE64`.
 - Для создания этих секретов нужен сертификат Apple Distribution в `.p12`, App Store provisioning profile для `com.blackministers.golos`, а также Team API Key App Store Connect с правом загрузки сборок. Файлы кодируются Base64 и добавляются только в GitHub → Settings → Secrets and variables → Actions; не отправляй их в чат и не коммить в репозиторий.
 - До первого запуска создай карточку приложения в App Store Connect с Bundle ID `com.blackministers.golos`. Build number в workflow автоматически увеличивается относительно текущего 3.
@@ -75,7 +75,7 @@
 3. Экспортируй сертификат как `.p12` с паролем. Получи Base64 для `.p12` и `.mobileprovision`.
 4. В App Store Connect создай Team API Key, скачай приватный `.p8` (однократно), сохрани Key ID и Issuer ID. Создай карточку приложения с точным Bundle ID.
 5. Добавь семь переменных GitHub Actions Secrets, перечисленных выше. Все секреты остаются в GitHub и не попадают в исходники.
-6. Запусти workflow вручную из вкладки Actions. После успешной загрузки дождись обработки сборки Apple и включи TestFlight-доступ для тестера.
+6. После добавления всех семи Secrets и repository variable `ENABLE_TESTFLIGHT=true` отправь новый commit в `voice-ios-native` (например, обновление версии); workflow автоматически подпишет и загрузит IPA. После успешной загрузки дождись обработки сборки Apple и включи TestFlight-доступ для тестера.
 
 ## Настройка Render
 
