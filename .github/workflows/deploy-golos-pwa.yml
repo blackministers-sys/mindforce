@@ -2,7 +2,7 @@ name: Deploy Golos PWA
 
 on:
   push:
-    branches: [golos-pwa-safari]
+    branches: [golos-pwa-safari, voice-ios-native]
     paths:
       - "voice-note/**"
       - ".github/workflows/deploy-golos-pwa.yml"
