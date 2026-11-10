@@ -1,6 +1,7 @@
 import AVFoundation
 import Combine
-import Foundation\nimport Speech
+import Foundation
+import Speech
 
 @MainActor
 final class MeetingRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
