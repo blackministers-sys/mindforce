@@ -2,7 +2,7 @@ name: Deploy Golos PWA
 
 on:
   push:
-    branches: [golos-pwa-safari, voice-ios-native]
+    branches: [golos-pwa-safari]
     paths:
       - "voice-note/**"
       - ".github/workflows/deploy-golos-pwa.yml"
@@ -21,8 +21,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Golos branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Check JavaScript syntax
         run: node --check voice-note/app.js
       - name: Check PWA files
@@ -40,14 +42,22 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
+      - name: Checkout Golos branch
         uses: actions/checkout@v4
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Upload PWA
+        with:
+          fetch-depth: 0
+      - name: Preserve existing MindForge site and add Golos under /voice-note/
+        run: |
+          mkdir -p _site
+          git archive origin/main | tar -x -C _site
+          mkdir -p _site/voice-note
+          cp -R voice-note/. _site/voice-note/
+          test -f _site/index.html
+          test -f _site/voice-note/index.html
+      - name: Upload combined Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: voice-note
+          path: _site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
