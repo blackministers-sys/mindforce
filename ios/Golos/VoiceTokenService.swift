@@ -6,6 +6,12 @@ private struct VoiceTokenResponse: Decodable {
     let expiresIn: Int
 }
 
+private struct VoiceBackendStatusResponse: Decodable {
+    let ok: Bool
+    let aiAvailable: Bool
+    let telephonyAvailable: Bool
+}
+
 final class VoiceTokenService {
     static let shared = VoiceTokenService()
     private init() {}
@@ -25,6 +31,44 @@ final class VoiceTokenService {
                 return message
             }
         }
+    }
+
+    func fetchBackendStatus(completion: @escaping (Result<(aiAvailable: Bool, telephonyAvailable: Bool), Error>) -> Void) {
+        let configuration = VoiceServerConfiguration.shared
+        guard configuration.isConfigured,
+              let baseURL = URL(string: configuration.serverURL) else {
+            DispatchQueue.main.async { completion(.failure(ServiceError.configurationMissing)) }
+            return
+        }
+
+        var request = URLRequest(url: baseURL.appendingPathComponent("v1/status"), timeoutInterval: 20)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(configuration.apiToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error {
+                DispatchQueue.main.async { completion(.failure(error)) }
+                return
+            }
+            guard let http = response as? HTTPURLResponse, let data else {
+                DispatchQueue.main.async { completion(.failure(ServiceError.invalidResponse)) }
+                return
+            }
+            guard (200..<300).contains(http.statusCode) else {
+                let message = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+                let detail = message?["error"] as? String ?? "HTTP \(http.statusCode)"
+                DispatchQueue.main.async { completion(.failure(ServiceError.serverMessage(detail))) }
+                return
+            }
+            do {
+                let status = try JSONDecoder().decode(VoiceBackendStatusResponse.self, from: data)
+                DispatchQueue.main.async {
+                    completion(.success((status.aiAvailable, status.telephonyAvailable)))
+                }
+            } catch {
+                DispatchQueue.main.async { completion(.failure(ServiceError.invalidResponse)) }
+            }
+        }.resume()
     }
 
     func fetchAccessToken(completion: @escaping (Result<String, Error>) -> Void) {
