@@ -35,6 +35,8 @@
         <button class="tab" data-tab="library">Библиотека <span id="countBadge">0</span></button>
       </nav>
 
+      <div class="ios-install-tip"><span>⌂</span><div><strong>Установите «Голос» на экран iPhone</strong><p>В Safari нажмите «Поделиться» → «На экран Домой».</p></div></div>
+
       <section id="recordView" class="view">
         <div class="record-card">
           <div class="record-topline"><span id="recordState">ГОТОВ К ЗАПИСИ</span><span class="secure-label">● Сохранение на устройстве</span></div>
@@ -49,6 +51,14 @@
             <button id="finishBtn" class="secondary-btn finish" disabled>■ Завершить</button>
           </div>
           <div class="record-foot"><span>МИКРОФОН УСТРОЙСТВА</span><span id="micStatus">ОЖИДАНИЕ</span></div>
+          <p class="privacy-note">Аудио сохраняется в памяти браузера на этом iPhone. Пока нет облачной синхронизации и автоматической расшифровки.</p>
+        </div>
+
+        <div class="import-row">
+          <div class="quick-icon">♫</div>
+          <div class="import-copy"><strong>Есть готовая запись?</strong><p>Добавьте аудио с телефона в библиотеку.</p></div>
+          <button id="importAudioBtn" class="import-btn" type="button">＋ Импорт</button>
+          <input id="audioFileInput" type="file" accept="audio/*,.m4a,.mp3,.wav,.aac,.ogg,.opus,.webm,.caf" hidden>
         </div>
 
         <div class="quick-note">

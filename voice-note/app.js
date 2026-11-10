@@ -22,7 +22,7 @@ async function startRecording(){
  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){showToast('Запись не поддерживается этим браузером');return}
  try{
   stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-  chunks=[];const mime=['audio/mp4;codecs=mp4a.40.2','audio/webm;codecs=opus','audio/webm','audio/mp4'].find(t=>MediaRecorder.isTypeSupported(t));
+  chunks=[];const candidates=['audio/mp4;codecs=mp4a.40.2','audio/webm;codecs=opus','audio/webm','audio/mp4'];const mime=typeof MediaRecorder.isTypeSupported==='function'?candidates.find(t=>MediaRecorder.isTypeSupported(t)):'';
   recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
   recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
   recorder.onstop=saveRecording;
@@ -39,6 +39,29 @@ function resumeRecording(){if(recorder?.state!=='paused')return;startedAt=Date.n
 function finishRecording(){if(!recorder||recorder.state==='inactive')return;if(recorder.state==='recording')elapsedBeforePause+=Date.now()-startedAt;clearInterval(timerHandle);recorder.stop();stream?.getTracks().forEach(t=>t.stop());$('recordState').textContent='СОХРАНЯЕМ…';$('recordHint').textContent='Подготавливаем аудиофайл';$('finishBtn').disabled=true;$('pauseBtn').disabled=true}
 async function saveRecording(){const type=recorder?.mimeType||chunks[0]?.type||'audio/webm';const blob=new Blob(chunks,{type});const duration=elapsedBeforePause;const item={id:makeId(),type:'audio',title:'Запись '+new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date()),createdAt:Date.now(),duration,blob,notes:''};try{await putItem(item);showToast('Запись сохранена на устройстве');}catch(e){showToast('Не удалось сохранить запись');console.error(e)}finally{recorder=null;stream=null;chunks=[];clearInterval(timerHandle);$('timer').innerHTML='00:00<span> / запись</span>';$('recordState').textContent='ГОТОВ К ЗАПИСИ';$('recordHint').textContent='Нажмите кнопку, чтобы начать запись';$('micStatus').textContent='ОЖИДАНИЕ';$('recordBtn').setAttribute('aria-label','Начать запись');$('pauseBtn').textContent='Ⅱ Пауза';$('pauseBtn').disabled=true;$('finishBtn').disabled=true;document.querySelector('.record-card').classList.remove('recording');$('recordBtn').classList.remove('is-recording');await refreshLists()}}
 $('quickNoteBtn').onclick=()=>{$('noteTitle').value='';$('noteBody').value='';$('noteDialog').showModal()};
+
+$('importAudioBtn').onclick=()=>$('audioFileInput').click();
+$('audioFileInput').addEventListener('change',async e=>{
+ const file=e.target.files&&e.target.files[0];e.target.value='';if(!file)return;
+ const lower=file.name.toLowerCase();
+ const known=['.m4a','.mp3','.wav','.aac','.ogg','.opus','.webm','.caf'].some(ext=>lower.endsWith(ext));
+ if(!file.type.startsWith('audio/')&&!known){showToast('Выберите аудиофайл');return}
+ if(file.size>250*1024*1024){showToast('Файл больше 250 МБ. Выберите запись поменьше.');return}
+ try{
+  const objectUrl=URL.createObjectURL(file);
+  const duration=await new Promise(resolve=>{
+   const audio=new Audio();audio.preload='metadata';
+   const finish=value=>{URL.revokeObjectURL(objectUrl);resolve(value)};
+   audio.onloadedmetadata=()=>finish(Number.isFinite(audio.duration)?Math.round(audio.duration*1000):0);
+   audio.onerror=()=>finish(0);audio.src=objectUrl;
+  });
+  const dot=file.name.lastIndexOf('.');
+  const title=dot>0?file.name.slice(0,dot):file.name;
+  await putItem({id:makeId(),type:'audio',title,fileName:file.name,createdAt:Date.now(),duration,blob:file,notes:''});
+  showToast('Аудиофайл добавлен в библиотеку');await refreshLists();setTab('library');
+ }catch(err){console.error(err);showToast('Не удалось сохранить файл. Возможно, не хватает памяти.')}
+});
+
 $('saveNoteBtn').onclick=async()=>{const body=$('noteBody').value.trim(),title=$('noteTitle').value.trim()||'Новая заметка';if(!body){showToast('Добавьте текст заметки');return}await putItem({id:makeId(),type:'note',title,body,notes:'',createdAt:Date.now(),duration:0});$('noteDialog').close();showToast('Заметка сохранена');await refreshLists()};
 function itemMarkup(item){const icon=item.type==='audio'?'♫':'✳',sub=item.type==='audio'?'Аудиозапись · '+fmtDate(item.createdAt):'Заметка · '+fmtDate(item.createdAt);return '<div class="record-item" data-id="'+item.id+'"><div class="item-icon">'+icon+'</div><div class="item-main"><div class="item-title"></div><div class="item-sub">'+sub+'</div></div><div class="item-duration">'+(item.type==='audio'?fmtTime(item.duration):'↗')+'</div></div>'}
 function addItems(container,items){container.innerHTML='';if(!items.length){container.innerHTML='<div class="empty-state">Пока здесь пусто. Создайте первую запись.</div>';return}items.forEach(item=>{const wrap=document.createElement('div');wrap.innerHTML=itemMarkup(item);const node=wrap.firstElementChild;node.querySelector('.item-title').textContent=item.title;node.onclick=()=>openDetail(item.id);container.appendChild(node)})}
@@ -48,8 +71,8 @@ $('searchInput').addEventListener('input',renderLibrary);
 document.querySelectorAll('.filter-chip').forEach(b=>b.onclick=()=>{activeFilter=b.dataset.filter;document.querySelectorAll('.filter-chip').forEach(x=>x.classList.toggle('selected',x===b));renderLibrary()});
 async function openDetail(id){const item=(await allItems()).find(x=>x.id===id);if(!item)return;currentItem=item;$('detailTitle').value=item.title;$('detailMeta').textContent=(item.type==='audio'?'Аудиозапись · '+fmtTime(item.duration)+' · ':'Текстовая заметка · ')+fmtDate(item.createdAt);$('detailNotes').value=item.notes||item.body||'';const player=$('audioPlayerWrap');player.innerHTML='';if(item.type==='audio'){const audio=document.createElement('audio');audio.controls=true;audio.preload='metadata';audio.src=URL.createObjectURL(item.blob);player.appendChild(audio);$('downloadBtn').hidden=false}else{$('downloadBtn').hidden=true} $('detailDialog').showModal()}
 $('saveDetailBtn').onclick=async()=>{if(!currentItem)return;currentItem.title=$('detailTitle').value.trim()||'Без названия';if(currentItem.type==='audio')currentItem.notes=$('detailNotes').value;else currentItem.body=$('detailNotes').value;await putItem(currentItem);$('detailDialog').close();showToast('Изменения сохранены');await refreshLists()};
-$('downloadBtn').onclick=()=>{if(!currentItem?.blob)return;const url=URL.createObjectURL(currentItem.blob),a=document.createElement('a');a.href=url;a.download=(currentItem.title||'audio').replace(/[\\/:*?"<>|]/g,'_')+'.'+(currentItem.blob.type.includes('mp4')?'m4a':'webm');a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+$('downloadBtn').onclick=()=>{if(!currentItem?.blob)return;const url=URL.createObjectURL(currentItem.blob),a=document.createElement('a');a.href=url;a.download=currentItem.fileName||(currentItem.title||'audio').replace(/[\\/:*?"<>|]/g,'_')+'.'+(currentItem.blob.type.includes('mp4')?'m4a':'webm');a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 $('deleteBtn').onclick=async()=>{if(!currentItem||!confirm('Удалить эту запись без возможности восстановления?'))return;await removeItem(currentItem.id);$('detailDialog').close();showToast('Запись удалена');await refreshLists()};
 let deferredInstall=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;$('installBtn').hidden=false});$('installBtn').onclick=async()=>{if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('installBtn').hidden=true}else showToast('В Safari нажмите «Поделиться» → «На экран Домой»')};
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
-(async()=>{try{db=await openDB();await refreshLists()}catch(e){showToast('Хранилище недоступно в этом браузере');console.error(e)}})();
+(async()=>{try{db=await openDB();try{if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist()}catch{}await refreshLists()}catch(e){showToast('Хранилище недоступно в этом браузере');console.error(e)}})();
