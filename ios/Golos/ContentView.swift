@@ -4,7 +4,8 @@ import UniformTypeIdentifiers
 @MainActor
 struct ContentView: View {
     @StateObject private var callMonitor = CallMonitor()
-    @StateObject private var recorder = MeetingRecorder()\n    @StateObject private var localTranscriber = LocalSpeechTranscriber()
+    @StateObject private var recorder = MeetingRecorder()
+    @StateObject private var localTranscriber = LocalSpeechTranscriber()
     @ObservedObject private var voice = VoiceCallManager.shared
     @ObservedObject private var configuration = VoiceServerConfiguration.shared
     @StateObject private var recordingsStore = VoiceRecordingsStore()
