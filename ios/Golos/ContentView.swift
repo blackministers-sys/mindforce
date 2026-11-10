@@ -88,7 +88,7 @@ struct ContentView: View {
 
     private var voiceSettings: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Телефонный сервис", systemImage: "network")
+            Label("Сервер приложения", systemImage: "network")
                 .font(.headline)
             HStack(spacing: 8) {
                 Circle()
@@ -106,7 +106,7 @@ struct ContentView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textFieldStyle(.roundedBorder)
-            Button("Сохранить и проверить") {
+            Button("Сохранить и проверить сервер") {
                 configuration.save(serverURL: serverURLDraft, apiToken: apiTokenDraft)
                 apiTokenDraft = ""
                 voice.validateConfiguration()
@@ -146,7 +146,7 @@ struct ContentView: View {
                     .padding(.vertical, 8)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(!configuration.isConfigured || !hasAcknowledgedRecordingNotice || phoneNumber.isEmpty || voice.isCallActive)
+            .disabled(!configuration.isConfigured || !voice.telephonyAvailable || !hasAcknowledgedRecordingNotice || phoneNumber.isEmpty || voice.isCallActive)
             if voice.isCallActive {
                 HStack {
                     Button {
@@ -175,6 +175,11 @@ struct ContentView: View {
             Text("Если назначить «Голос» приложением для звонков по умолчанию в настройках iOS, вызовы по ссылкам tel: будут открывать предложение записать разговор. Входящие SIM-звонки при этом останутся в стандартном приложении «Телефон».")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            if !voice.telephonyAvailable {
+                Text("Телефония подключается отдельно. Запись встреч, импорт аудио и AI-обработка могут работать без Twilio.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .cardStyle()
     }
