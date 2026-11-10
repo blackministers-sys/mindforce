@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 @MainActor
 struct ContentView: View {
     @StateObject private var callMonitor = CallMonitor()
-    @StateObject private var recorder = MeetingRecorder()
+    @StateObject private var recorder = MeetingRecorder()\n    @StateObject private var localTranscriber = LocalSpeechTranscriber()
     @ObservedObject private var voice = VoiceCallManager.shared
     @ObservedObject private var configuration = VoiceServerConfiguration.shared
     @StateObject private var recordingsStore = VoiceRecordingsStore()
@@ -28,14 +28,9 @@ struct ContentView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    voiceSettings
-                    phoneDialer
-                    recordingsLibrary
-                    aiResultCard
-                    aiLibraryCard
+                    localTranscriptionCard
                     meetingRecorder
                     importCard
-                    callMonitorCard
                     platformNote
                 }
                 .padding()
@@ -412,6 +407,43 @@ struct ContentView: View {
         }
     }
 
+    private var localTranscriptionCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Локальная расшифровка", systemImage: "text.quote")
+                .font(.headline)
+            HStack(spacing: 8) {
+                if localTranscriber.isTranscribing { ProgressView() }
+                Text(localTranscriber.status)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let error = localTranscriber.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+            if !localTranscriber.transcript.isEmpty {
+                HStack {
+                    Text("Текст распознанной речи")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    ShareLink(item: localTranscriber.transcript) {
+                        Label("Экспорт", systemImage: "square.and.arrow.up")
+                    }
+                    .font(.caption)
+                }
+                Text(localTranscriber.transcript)
+                    .font(.footnote)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Text("Интернет, сервер, OpenAI и API-ключи не используются. Распознавание запускается после остановки записи или импорта файла.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .cardStyle()
+    }
+
     private var meetingRecorder: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Запись встреч и заметок", systemImage: "waveform")
@@ -424,7 +456,7 @@ struct ContentView: View {
             Button {
                 if recorder.isRecording {
                     recorder.stop()
-                    if let url = recorder.latestFileURL { aiProcessor.process(fileURL: url) }
+                    if let url = recorder.latestFileURL { localTranscriber.transcribe(fileURL: url) }
                 } else if hasAcknowledgedMeetingRecordingNotice {
                     recorder.start()
                 }
@@ -482,9 +514,9 @@ struct ContentView: View {
 
     private var platformNote: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label("Важно о звонках", systemImage: "info.circle")
+            Label("Локальная обработка", systemImage: "iphone")
                 .font(.headline)
-            Text("Обычные номера доступны через собственный телефонный шлюз. WhatsApp, Telegram и FaceTime не перехватываются. Перед записью необходимо уведомить участников, получить требуемое согласие и соблюдать местные правила.")
+            Text("Записи и расшифровки остаются на iPhone. Для распознавания используется системный движок Apple с обязательным режимом обработки на устройстве. Поддержка русского языка зависит от версии iOS и доступных языковых моделей. Звонки из других приложений не записываются.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -522,7 +554,7 @@ struct ContentView: View {
             }
             importedFileName = importedURL.lastPathComponent
             importError = nil
-            aiProcessor.process(fileURL: importedURL)
+            localTranscriber.transcribe(fileURL: importedURL)
         } catch {
             importError = "Не удалось импортировать файл: \(error.localizedDescription)"
         }
