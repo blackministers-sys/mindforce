@@ -1,6 +1,6 @@
 import AVFoundation
 import Combine
-import Foundation
+import Foundation\nimport Speech
 
 @MainActor
 final class MeetingRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
@@ -388,3 +388,100 @@ private struct AIRecordingLibraryEnvelope: Decodable {
     let recordings: [AIRecordingLibraryItem]
 }
 
+
+
+/// Performs speech recognition strictly on the device. No audio is uploaded.
+@MainActor
+final class LocalSpeechTranscriber: ObservableObject {
+    @Published private(set) var isTranscribing = false
+    @Published private(set) var status = "Готов к локальной расшифровке"
+    @Published private(set) var transcript = ""
+    @Published private(set) var errorMessage: String?
+
+    private var recognitionTask: SFSpeechRecognitionTask?
+
+    func transcribe(fileURL: URL) {
+        guard !isTranscribing else {
+            status = "Дождитесь завершения предыдущей расшифровки"
+            return
+        }
+        transcript = ""
+        errorMessage = nil
+        status = "Запрашиваем разрешение на распознавание речи…"
+        SFSpeechRecognizer.requestAuthorization { [weak self] authorization in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                guard authorization == .authorized else {
+                    self.status = "Нет разрешения на распознавание речи"
+                    self.errorMessage = "Разрешите распознавание речи в настройках iPhone и повторите попытку."
+                    return
+                }
+                self.startRecognition(fileURL: fileURL)
+            }
+        }
+    }
+
+    private func startRecognition(fileURL: URL) {
+        let locale = Locale(identifier: "ru-RU")
+        guard let recognizer = SFSpeechRecognizer(locale: locale) else {
+            status = "Русский язык недоступен"
+            errorMessage = "Системный распознаватель речи не поддерживает русский язык на этом устройстве."
+            return
+        }
+        guard recognizer.isAvailable else {
+            status = "Распознавание сейчас недоступно"
+            errorMessage = "Проверьте настройки речи и попробуйте ещё раз."
+            return
+        }
+        guard recognizer.supportsOnDeviceRecognition else {
+            status = "Локальная модель русского языка недоступна"
+            errorMessage = "На этом iPhone системный движок не подтверждает офлайн-распознавание русского языка. Чтобы не отправлять аудио в интернет, обработка остановлена."
+            return
+        }
+
+        let request = SFSpeechURLRecognitionRequest(url: fileURL)
+        request.requiresOnDeviceRecognition = true
+        request.shouldReportPartialResults = true
+        request.taskHint = .dictation
+
+        isTranscribing = true
+        status = "Распознаём аудио на iPhone…"
+        recognitionTask?.cancel()
+        recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if let result {
+                    self.transcript = result.bestTranscription.formattedString
+                    if result.isFinal {
+                        self.isTranscribing = false
+                        self.status = "Локальная расшифровка готова"
+                        self.saveTranscript(for: fileURL)
+                        self.recognitionTask = nil
+                    }
+                }
+                if let error {
+                    self.isTranscribing = false
+                    self.status = "Не удалось завершить расшифровку"
+                    self.errorMessage = error.localizedDescription
+                    self.recognitionTask = nil
+                }
+            }
+        }
+    }
+
+    private func saveTranscript(for audioURL: URL) {
+        let textURL = audioURL.deletingPathExtension().appendingPathExtension("txt")
+        do {
+            try transcript.write(to: textURL, atomically: true, encoding: .utf8)
+        } catch {
+            errorMessage = "Текст распознан, но не удалось сохранить файл: \(error.localizedDescription)"
+        }
+    }
+
+    func cancel() {
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        isTranscribing = false
+        status = "Расшифровка остановлена"
+    }
+}
