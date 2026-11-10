@@ -24,6 +24,8 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Микрофон используется для записи встреч и телефонных разговоров, которые вы проводите через сервис «Голос».</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Распознавание речи нужно для создания текстовой расшифровки аудиозаписей непосредственно на iPhone.</string>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UIBackgroundModes</key>
