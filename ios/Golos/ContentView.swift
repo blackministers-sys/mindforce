@@ -16,6 +16,9 @@ struct ContentView: View {
     @State private var serverURLDraft = VoiceServerConfiguration.shared.serverURL
     @State private var apiTokenDraft = ""
     @State private var phoneNumber = ""
+    @State private var pendingSystemCallNumber: String?
+    @State private var showingSystemCallPrompt = false
+    @State private var showingRecordingConsentRequired = false
     @State private var aiLibraryQuery = ""
     @State private var pendingAIRecordingDeletion: AIRecordingLibraryItem?
     @AppStorage("golos.recording.accepted") private var hasAcknowledgedRecordingNotice = false
@@ -40,6 +43,35 @@ struct ContentView: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Голос")
             .onAppear { aiProcessor.refreshLibrary(query: aiLibraryQuery) }
+            .onOpenURL { url in
+                handleSystemCallURL(url)
+            }
+            .confirmationDialog(
+                "Начать звонок через «Голос»?",
+                isPresented: $showingSystemCallPrompt,
+                titleVisibility: .visible
+            ) {
+                Button("Позвонить с записью") {
+                    guard hasAcknowledgedRecordingNotice else {
+                        showingRecordingConsentRequired = true
+                        return
+                    }
+                    if let number = pendingSystemCallNumber {
+                        voice.startCall(to: number)
+                    }
+                    pendingSystemCallNumber = nil
+                }
+                Button("Отмена", role: .cancel) {
+                    pendingSystemCallNumber = nil
+                }
+            } message: {
+                Text("Вызов будет выполнен через телефонный сервис «Голос». Собеседнику будет предложено подтвердить запись перед соединением.")
+            }
+            .alert("Сначала разрешите запись", isPresented: $showingRecordingConsentRequired) {
+                Button("Понятно", role: .cancel) { }
+            } message: {
+                Text("Включите переключатель «Разрешаю запись звонков через „Голос“» в приложении, затем повторите вызов.")
+            }
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
                 importAudio(result)
             }
@@ -139,6 +171,9 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
             Text("Звонок проходит через телефонный шлюз «Голоса», а не через SIM-звонилку iPhone. Запись выполняется на стороне провайдера.")
                 .font(.caption)
+                .foregroundStyle(.secondary)
+            Text("Если назначить «Голос» приложением для звонков по умолчанию в настройках iOS, вызовы по ссылкам tel: будут открывать предложение записать разговор. Входящие SIM-звонки при этом останутся в стандартном приложении «Телефон».")
+                .font(.caption2)
                 .foregroundStyle(.secondary)
         }
         .cardStyle()
@@ -449,6 +484,19 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
         }
         .cardStyle()
+    }
+
+    private func handleSystemCallURL(_ url: URL) {
+        guard url.scheme?.lowercased() == "tel" else { return }
+
+        let rawNumber = String(url.absoluteString.dropFirst(4))
+            .removingPercentEncoding ?? String(url.absoluteString.dropFirst(4))
+        let number = rawNumber.filter { $0.isNumber || $0 == "+" }
+
+        guard !number.isEmpty else { return }
+        phoneNumber = number
+        pendingSystemCallNumber = number
+        showingSystemCallPrompt = true
     }
 
     private func importAudio(_ result: Result<[URL], Error>) {
