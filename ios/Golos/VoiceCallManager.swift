@@ -15,6 +15,8 @@ final class VoiceCallManager: NSObject, ObservableObject {
     @Published private(set) var isCallActive = false
     @Published private(set) var isMuted = false
     @Published private(set) var isIncomingCall = false
+    @Published private(set) var aiAvailable = false
+    @Published private(set) var telephonyAvailable = false
 
     var connectionStatus: String {
         VoiceServerConfiguration.shared.isConfigured ? "Сервис подключён" : "Сервис не настроен"
@@ -122,23 +124,32 @@ final class VoiceCallManager: NSObject, ObservableObject {
         registerPushDeviceTokenIfPossible()
     }
 
-    /// Tests the authenticated backend token endpoint without initiating a call.
+    /// Checks backend availability and enabled capabilities without requiring Twilio credentials.
     func validateConfiguration() {
         guard VoiceServerConfiguration.shared.isConfigured else {
             status = "Укажите HTTPS-адрес сервера и персональный ключ доступа"
             errorMessage = "Настройки неполные."
+            aiAvailable = false
+            telephonyAvailable = false
             return
         }
-        status = "Проверяем подключение к телефонному серверу…"
+        status = "Проверяем сервер и доступные функции…"
         errorMessage = nil
-        VoiceTokenService.shared.fetchAccessToken { [weak self] result in
+        VoiceTokenService.shared.fetchBackendStatus { [weak self] result in
+            guard let self else { return }
             switch result {
-            case .success:
-                self?.status = "Сервер подключён. Можно совершать звонки."
-                self?.errorMessage = nil
+            case .success(let capabilities):
+                self.aiAvailable = capabilities.aiAvailable
+                self.telephonyAvailable = capabilities.telephonyAvailable
+                let aiText = capabilities.aiAvailable ? "AI готова" : "AI-ключ не настроен"
+                let phoneText = capabilities.telephonyAvailable ? "звонки доступны" : "телефония не подключена"
+                self.status = "Сервер доступен · \(aiText) · \(phoneText)"
+                self.errorMessage = nil
             case .failure(let error):
-                self?.status = "Не удалось подключиться к серверу"
-                self?.errorMessage = error.localizedDescription
+                self.aiAvailable = false
+                self.telephonyAvailable = false
+                self.status = "Не удалось проверить backend"
+                self.errorMessage = error.localizedDescription
             }
         }
     }
