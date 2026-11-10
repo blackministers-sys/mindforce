@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: golos-ai-test
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: voice-backend
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GOLOS_APP_API_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_TRANSCRIPTION_MODEL
+        value: gpt-4o-transcribe-diarize
+      - key: OPENAI_SUMMARY_MODEL
+        value: gpt-6-luna
