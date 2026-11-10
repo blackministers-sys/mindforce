@@ -112,6 +112,25 @@ function addRecordingDial(response, destination, destinationType, requireDestina
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'golos-voice-backend' }));
 
+// Capability status for the iOS client. Never return credentials or their values.
+app.get('/v1/status', requireAppToken, (_req, res) => {
+  const voiceRequired = [
+    'TWILIO_ACCOUNT_SID',
+    'TWILIO_AUTH_TOKEN',
+    'TWILIO_API_KEY_SID',
+    'TWILIO_API_SECRET',
+    'TWILIO_APP_SID',
+    'TWILIO_CALLER_ID',
+  ];
+  const voiceConfigured = voiceRequired.every((name) => Boolean(process.env[name]))
+    && allowedPrefixes().length > 0;
+  return res.json({
+    ok: true,
+    aiAvailable: Boolean(process.env.OPENAI_API_KEY),
+    telephonyAvailable: voiceConfigured,
+  });
+});
+
 // All AI audio endpoints use the same private app token as the telephony API.
 app.use('/v1/ai', requireAppToken, createAIRouter({ dataDir: DATA_DIR }));
 
