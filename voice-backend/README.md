@@ -80,6 +80,7 @@ Twilio должен вызывать webhook по публичному HTTPS URL
 ## API
 
 - GET /health
+- GET /v1/status — проверка доступности AI и телефонии с авторизацией приложения; возвращает только булевы признаки готовности, не секреты.
 - POST /v1/voice/token — JSON { "identity": "golos-user" }, ответ { accessToken, identity, expiresIn }.
 - GET /v1/voice/recordings — список завершённых записей.
 - GET /v1/voice/recordings/:recordingSid/audio — защищённая загрузка MP3.
